@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin</title>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<h2>Admin Dashboard</h2>
+
+<table border="1" cellpadding="6">
+<thead>
+<tr><th>Mobile</th><th>Lat</th><th>Lng</th><th>Status</th></tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+
+<script>
+const socket=io();
+
+socket.on("busList",buses=>{
+  table.innerHTML="";
+  const now=Date.now();
+  for(let m in buses){
+    const b=buses[m];
+    const status=(now-b.time<10000)?"Online":"Offline";
+    table.innerHTML+=`
+    <tr>
+      <td>${m}</td>
+      <td>${b.lat}</td>
+      <td>${b.lng}</td>
+      <td>${status}</td>
+    </tr>`;
+  }
+});
+</script>
+
+</body>
+</html>

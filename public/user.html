@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>User Tracking</title>
+
+<script>
+if(!localStorage.getItem("user")){
+  location="login.html";
+}
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAKiCmPoqKAScggevcUjXj1voe3uv73S7w"></script>
+
+<style>
+#map { width:100%; height:85vh; }
+#list { padding:10px; background:#f5f5f5; }
+li { cursor:pointer; padding:6px; }
+li:hover { background:#ddd; }
+</style>
+</head>
+
+<body>
+
+<h2>Live Vehicle Tracking</h2>
+
+<div id="list">
+<h3>Vehicles</h3>
+<ul id="busList"></ul>
+</div>
+
+<div id="map"></div>
+
+<script>
+const socket = io();
+let map;
+let markers = {};
+let selectedBus = null;
+
+// init map
+map = new google.maps.Map(document.getElementById("map"), {
+  center:{lat:28.6,lng:77.2},
+  zoom:13
+});
+
+// update bus list
+socket.on("busList", buses=>{
+  busList.innerHTML="";
+  for(let m in buses){
+    const li=document.createElement("li");
+    li.innerText=m;
+    li.onclick=()=>selectBus(m);
+    busList.appendChild(li);
+  }
+});
+
+// select bus
+function selectBus(m){
+  selectedBus=m;
+
+  if(markers[m]){
+    map.panTo(markers[m].getPosition());
+    markers[m].setAnimation(google.maps.Animation.BOUNCE);
+    setTimeout(()=>markers[m].setAnimation(null),1500);
+  }
+}
+
+// receive driver GPS
+socket.on("location", d=>{
+  const pos={lat:d.lat,lng:d.lng};
+
+  if(!markers[d.mobile]){
+    const marker=new google.maps.Marker({
+      position:pos,
+      map:map,
+      title:"Mobile: "+d.mobile
+    });
+
+    const info=new google.maps.InfoWindow({
+      content:"<b>Mobile:</b> "+d.mobile
+    });
+
+    marker.addListener("click",()=>{
+      info.open(map,marker);
+    });
+
+    markers[d.mobile]=marker;
+  }else{
+    markers[d.mobile].setPosition(pos);
+  }
+
+  if(d.mobile===selectedBus){
+    map.panTo(pos);
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+</head>
+<body>
+
+<h2>Login</h2>
+
+<input id="mobile" placeholder="Enter Mobile Number"><br><br>
+
+<button onclick="login()">Login</button>
+
+<p id="status"></p>
+
+<script>
+function login(){
+  const m = mobile.value.trim();
+
+  if(m.length < 10){
+    status.innerText = "Enter valid mobile number";
+    return;
+  }
+
+  localStorage.setItem("user", m);
+  location = "user.html";
+}
+</script>
+
+</body>
+</html>
