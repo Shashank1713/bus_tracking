@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Signin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<h2>Login</h2>
+
+<input id="username" placeholder="Username"><br><br>
+<input id="password" type="password" placeholder="Password"><br><br>
+
+<button onclick="signin()">Sign In</button>
+<p id="msg"></p>
+
+<script src="auth.js"></script>
+<script>
+function signin() {
+    fetch("/api/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            username: username.value,
+            password: password.value
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.role) {
+            saveUser(d);
+            if (d.role === "driver") location.href = "driver.html";
+            if (d.role === "user") location.href = "user.html";
+            if (d.role === "admin") location.href = "admin.html";
+        } else {
+            msg.innerText = d.message;
+        }
+    });
+}
+</script>
+
+</body>
+</html>

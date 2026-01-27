@@ -1,25 +1,68 @@
 const express = require("express");
-const http = require("http");
+const path = require("path");
+const cors = require("cors");
 
 const app = express();
-const server = http.createServer(app);
-const io = require("socket.io")(server);
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
 
-app.use(express.static("public"));
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-const buses = {};
+// ---------------- AUTH (IN-MEMORY) ----------------
+let users = {}; // { username: { password, role } }
 
-io.on("connection", socket => {
-  console.log("Client connected");
+app.post("/api/signup", (req, res) => {
+    const { username, password, role } = req.body;
 
-  socket.on("location", data => {
-    buses[data.mobile] = { ...data, time: Date.now() };
-    io.emit("location", data);
-    io.emit("busList", buses);
-  });
+    if (!username || !password || !role) {
+        return res.status(400).json({ message: "All fields required" });
+    }
+    if (users[username]) {
+        return res.status(409).json({ message: "User already exists" });
+    }
+
+    users[username] = { password, role };
+    res.json({ message: "Signup successful" });
 });
 
+app.post("/api/signin", (req, res) => {
+    const { username, password } = req.body;
+    const user = users[username];
+
+    if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    res.json({ username, role: user.role });
+});
+
+// ---------------- BUS TRACKING ----------------
+let buses = {};
+
+io.on("connection", socket => {
+    socket.on("busLocation", data => {
+        buses[data.busId] = {
+            lat: data.lat,
+            lon: data.lon,
+            time: Date.now()
+        };
+        io.emit("fleetUpdate", buses);
+    });
+});
+
+// Remove inactive buses
+setInterval(() => {
+    const now = Date.now();
+    for (let id in buses) {
+        if (now - buses[id].time > 30000) {
+            delete buses[id];
+        }
+    }
+}, 10000);
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log("Server running on http://localhost:" + PORT);
+http.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });

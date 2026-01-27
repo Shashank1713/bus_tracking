@@ -1,97 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>User Tracking</title>
+<title>User</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script>
-if(!localStorage.getItem("user")){
-  location="login.html";
-}
-</script>
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAKiCmPoqKAScggevcUjXj1voe3uv73S7w"></script>
+<script src="auth.js"></script>
 
 <style>
-#map { width:100%; height:85vh; }
-#list { padding:10px; background:#f5f5f5; }
-li { cursor:pointer; padding:6px; }
-li:hover { background:#ddd; }
+html,body,#map{height:100%;margin:0;}
 </style>
 </head>
-
 <body>
 
-<h2>Live Vehicle Tracking</h2>
-
-<div id="list">
-<h3>Vehicles</h3>
-<ul id="busList"></ul>
-</div>
-
+<script>requireRole("user");</script>
 <div id="map"></div>
 
 <script>
 const socket = io();
-let map;
+
+const map = L.map("map").setView([0,0],2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+const busIcon = L.icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/61/61231.png",
+  iconSize: [40,40],
+  iconAnchor: [20,20]
+});
+
 let markers = {};
-let selectedBus = null;
+let centered = false;
 
-// init map
-map = new google.maps.Map(document.getElementById("map"), {
-  center:{lat:28.6,lng:77.2},
-  zoom:13
-});
-
-// update bus list
-socket.on("busList", buses=>{
-  busList.innerHTML="";
-  for(let m in buses){
-    const li=document.createElement("li");
-    li.innerText=m;
-    li.onclick=()=>selectBus(m);
-    busList.appendChild(li);
-  }
-});
-
-// select bus
-function selectBus(m){
-  selectedBus=m;
-
-  if(markers[m]){
-    map.panTo(markers[m].getPosition());
-    markers[m].setAnimation(google.maps.Animation.BOUNCE);
-    setTimeout(()=>markers[m].setAnimation(null),1500);
-  }
-}
-
-// receive driver GPS
-socket.on("location", d=>{
-  const pos={lat:d.lat,lng:d.lng};
-
-  if(!markers[d.mobile]){
-    const marker=new google.maps.Marker({
-      position:pos,
-      map:map,
-      title:"Mobile: "+d.mobile
-    });
-
-    const info=new google.maps.InfoWindow({
-      content:"<b>Mobile:</b> "+d.mobile
-    });
-
-    marker.addListener("click",()=>{
-      info.open(map,marker);
-    });
-
-    markers[d.mobile]=marker;
-  }else{
-    markers[d.mobile].setPosition(pos);
-  }
-
-  if(d.mobile===selectedBus){
-    map.panTo(pos);
-  }
+socket.on("fleetUpdate", buses => {
+    for (let id in buses) {
+        const b = buses[id];
+        if (!markers[id]) {
+            markers[id] = L.marker([b.lat,b.lon],{icon:busIcon})
+              .addTo(map)
+              .bindPopup("Bus "+id);
+            if (!centered) {
+                map.setView([b.lat,b.lon],15);
+                centered = true;
+            }
+        } else {
+            markers[id].setLatLng([b.lat,b.lon]);
+        }
+    }
 });
 </script>
 

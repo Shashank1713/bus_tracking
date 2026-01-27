@@ -1,29 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Login</title>
+<title>Login - Bus Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
 <h2>Login</h2>
 
-<input id="mobile" placeholder="Enter Mobile Number"><br><br>
+<h3>Driver Login</h3>
+<input id="busId" placeholder="Bus ID"><br><br>
+<input id="pin" type="password" placeholder="Driver PIN"><br><br>
+<button onclick="driverLogin()">Login as Driver</button>
 
-<button onclick="login()">Login</button>
+<hr>
 
-<p id="status"></p>
+<h3>User Login</h3>
+<button onclick="userLogin()">Login as Passenger</button>
 
 <script>
-function login(){
-  const m = mobile.value.trim();
+function driverLogin() {
+    const busId = document.getElementById("busId").value;
+    const pin = document.getElementById("pin").value;
 
-  if(m.length < 10){
-    status.innerText = "Enter valid mobile number";
-    return;
-  }
+    if (pin === "1234" && busId) {
+        localStorage.clear();
+        localStorage.setItem("role", "driver");
+        localStorage.setItem("busId", busId);
+        window.location.href = "driver.html";
+    } else {
+        alert("Invalid Driver Credentials");
+    }
+}
 
-  localStorage.setItem("user", m);
-  location = "user.html";
+function userLogin() {
+    localStorage.clear();
+    localStorage.setItem("role", "user");
+    window.location.href = "user.html";
 }
 </script>
 

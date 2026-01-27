@@ -1,16 +1,14 @@
 {
   "name": "bus-tracking",
   "version": "1.0.0",
-  "description": "Real time bus tracking system",
+  "description": "Real Time Bus Tracking with Login Signup",
   "main": "server.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.5"
+    "express": "^4.19.0",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5"
   }
 }

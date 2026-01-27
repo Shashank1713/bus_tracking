@@ -2,36 +2,57 @@
 <html>
 <head>
 <title>Admin</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+<script src="auth.js"></script>
+
+<style>
+#map{height:50vh}
+table{width:100%;border-collapse:collapse}
+td,th{border:1px solid #ccc;padding:6px;text-align:center}
+</style>
 </head>
 <body>
 
-<h2>Admin Dashboard</h2>
+<script>requireRole("admin");</script>
 
-<table border="1" cellpadding="6">
+<h2>Fleet Monitor</h2>
+<div id="map"></div>
+
+<table>
 <thead>
-<tr><th>Mobile</th><th>Lat</th><th>Lng</th><th>Status</th></tr>
+<tr><th>Bus</th><th>Lat</th><th>Lon</th><th>Time</th></tr>
 </thead>
-<tbody id="table"></tbody>
+<tbody id="rows"></tbody>
 </table>
 
 <script>
-const socket=io();
+const socket = io();
+const map = L.map("map").setView([20,78],5);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-socket.on("busList",buses=>{
-  table.innerHTML="";
-  const now=Date.now();
-  for(let m in buses){
-    const b=buses[m];
-    const status=(now-b.time<10000)?"Online":"Offline";
-    table.innerHTML+=`
-    <tr>
-      <td>${m}</td>
-      <td>${b.lat}</td>
-      <td>${b.lng}</td>
-      <td>${status}</td>
-    </tr>`;
+const busIcon = L.icon({
+  iconUrl:"https://cdn-icons-png.flaticon.com/512/61/61231.png",
+  iconSize:[35,35],
+  iconAnchor:[18,18]
+});
+
+let markers={};
+
+socket.on("fleetUpdate", buses=>{
+  let html="";
+  for(let id in buses){
+    const b=buses[id];
+    html+=`<tr><td>${id}</td><td>${b.lat}</td><td>${b.lon}</td><td>${new Date(b.time).toLocaleTimeString()}</td></tr>`;
+    if(!markers[id]){
+      markers[id]=L.marker([b.lat,b.lon],{icon:busIcon}).addTo(map);
+    } else {
+      markers[id].setLatLng([b.lat,b.lon]);
+    }
   }
+  rows.innerHTML=html;
 });
 </script>
 

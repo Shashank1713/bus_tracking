@@ -1,31 +1,35 @@
 <!DOCTYPE html>
 <html>
+<head>
+<title>Driver</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="/socket.io/socket.io.js"></script>
+<script src="auth.js"></script>
+</head>
 <body>
 
-<h2>Driver</h2>
+<script>requireRole("driver");</script>
 
-<input id="name" placeholder="Driver Name"><br>
-<input id="bus" placeholder="Bus Number"><br>
-<input id="mobile" placeholder="Mobile"><br><br>
-
+<h2>Driver GPS</h2>
+<input id="busId" placeholder="Bus ID"><br><br>
 <button onclick="start()">Start Sharing</button>
-<p id="out"></p>
+<button onclick="logout()">Logout</button>
 
-<script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
 
-function start(){
-  navigator.geolocation.watchPosition(pos=>{
-    socket.emit("location",{
-      name:name.value,
-      bus:bus.value,
-      mobile:mobile.value,
-      lat:pos.coords.latitude,
-      lng:pos.coords.longitude
+function start() {
+    navigator.geolocation.watchPosition(pos => {
+        socket.emit("busLocation", {
+            busId: busId.value,
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude
+        });
+    }, err => alert(err.message), {
+        enableHighAccuracy: true
     });
-    out.innerText="Sharing...";
-  });
+
+    alert("GPS started");
 }
 </script>
 
