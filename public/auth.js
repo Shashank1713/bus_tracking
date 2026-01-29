@@ -1,31 +1,15 @@
-function togglePassword(){
-  password.type = password.type === "password" ? "text" : "password";
+function showSignin(){
+  signinBox.style.display="block";
+  signupBox.style.display="none";
+  signinTab.classList.add("active");
+  signupTab.classList.remove("active");
 }
 
 function showSignup(){
+  signinBox.style.display="none";
   signupBox.style.display="block";
-  title.innerText="Sign Up";
-}
-
-function showSignin(){
-  signupBox.style.display="none";
-  title.innerText="Sign In";
-}
-
-async function signup(){
-  const res = await fetch("/api/signup",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      username:email.value,
-      password:password.value,
-      role:role.value
-    })
-  });
-
-  const data = await res.json();
-  alert(data.message);
-  if(res.ok) showSignin();
+  signupTab.classList.add("active");
+  signinTab.classList.remove("active");
 }
 
 async function signin(){
@@ -33,8 +17,8 @@ async function signin(){
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      username:email.value,
-      password:password.value
+      username:signinEmail.value,
+      password:signinPassword.value
     })
   });
 
@@ -44,22 +28,23 @@ async function signin(){
     if(data.role==="user") location.href="/user.html";
     if(data.role==="driver") location.href="/driver.html";
     if(data.role==="admin") location.href="/admin.html";
-  } else {
+  }else{
     alert(data.message);
-    resetBox.style.display="block";
   }
 }
 
-async function resetPassword(){
-  const res = await fetch("/api/reset-password",{
+async function signup(){
+  const res = await fetch("/api/signup",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      username:email.value,
-      otp:otp.value,
-      newPassword:newPassword.value
+      username:signupEmail.value,
+      password:signupPassword.value,
+      role:signupRole.value
     })
   });
 
-  alert((await res.json()).message);
+  const data = await res.json();
+  alert(data.message);
+  if(res.ok) showSignin();
 }
