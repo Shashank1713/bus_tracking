@@ -1,19 +1,38 @@
-function saveUser(user) {
-    localStorage.setItem("user", JSON.stringify(user));
+function togglePassword(){
+  password.type = password.type === "password" ? "text" : "password";
 }
 
-function getUser() {
-    return JSON.parse(localStorage.getItem("user"));
+async function signin(){
+  const res = await fetch("/api/signin",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      username:email.value,
+      password:password.value
+    })
+  });
+
+  const data = await res.json();
+
+  if(res.ok){
+    if(data.role==="driver") location.href="/driver.html";
+    if(data.role==="user") location.href="/user.html";
+    if(data.role==="admin") location.href="/admin.html";
+  } else {
+    alert(data.message);
+    resetBox.style.display="block";
+  }
 }
 
-function logout() {
-    localStorage.clear();
-    window.location.href = "signin.html";
-}
-
-function requireRole(role) {
-    const user = getUser();
-    if (!user || user.role !== role) {
-        window.location.href = "signin.html";
-    }
+async function resetPassword(){
+  const res = await fetch("/api/reset-password",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      username:email.value,
+      otp:otp.value,
+      newPassword:newPassword.value
+    })
+  });
+  alert((await res.json()).message);
 }

@@ -1,60 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Admin</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="/socket.io/socket.io.js"></script>
-<script src="auth.js"></script>
-
-<style>
-#map{height:50vh}
-table{width:100%;border-collapse:collapse}
-td,th{border:1px solid #ccc;padding:6px;text-align:center}
-</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<style>#map{height:100vh}</style>
 </head>
 <body>
-
-<script>requireRole("admin");</script>
-
-<h2>Fleet Monitor</h2>
 <div id="map"></div>
 
-<table>
-<thead>
-<tr><th>Bus</th><th>Lat</th><th>Lon</th><th>Time</th></tr>
-</thead>
-<tbody id="rows"></tbody>
-</table>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 
 <script>
-const socket = io();
-const map = L.map("map").setView([20,78],5);
+const email=prompt("Admin email");
+fetch("/api/check-admin",{method:"POST",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({username:email})})
+.then(r=>r.json()).then(d=>{
+ if(!d.ok){alert("Denied");location.href="/auth.html";}
+});
+
+const map=L.map("map").setView([15.85,74.5],13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-const busIcon = L.icon({
-  iconUrl:"https://cdn-icons-png.flaticon.com/512/61/61231.png",
-  iconSize:[35,35],
-  iconAnchor:[18,18]
+const busIcon=L.icon({
+ iconUrl:"https://cdn-icons-png.flaticon.com/512/3774/3774299.png",
+ iconSize:[48,48]
 });
 
-let markers={};
+const markers={};
+const socket=io();
 
-socket.on("fleetUpdate", buses=>{
-  let html="";
-  for(let id in buses){
-    const b=buses[id];
-    html+=`<tr><td>${id}</td><td>${b.lat}</td><td>${b.lon}</td><td>${new Date(b.time).toLocaleTimeString()}</td></tr>`;
-    if(!markers[id]){
-      markers[id]=L.marker([b.lat,b.lon],{icon:busIcon}).addTo(map);
-    } else {
-      markers[id].setLatLng([b.lat,b.lon]);
-    }
+socket.on("fleetUpdate",buses=>{
+ for(const id in buses){
+  const {lat,lon}=buses[id];
+  if(!markers[id]){
+   markers[id]=L.marker([lat,lon],{icon:busIcon}).addTo(map);
+  }else{
+   markers[id].setLatLng([lat,lon]);
   }
-  rows.innerHTML=html;
+ }
 });
 </script>
-
 </body>
 </html>
