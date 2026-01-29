@@ -1,23 +1,61 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Driver – Live Location</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 <body>
-<h2>Driver</h2>
-<input id="busId" placeholder="Bus ID">
-<button onclick="start()">Start</button>
+
+<h2>🚍 Driver Location Sharing</h2>
+
+<input id="busId" placeholder="Enter Bus ID (BUS101)" />
+<button onclick="start()">Start Sharing</button>
+
+<p id="status"></p>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io();
+  const socket = io();
+  const status = document.getElementById("status");
 
-function start(){
-  navigator.geolocation.watchPosition(pos=>{
-    socket.emit("updateLocation",{
-      id:busId.value,
-      lat:pos.coords.latitude,
-      lon:pos.coords.longitude
-    });
-  });
-}
+  function start() {
+    const busId = document.getElementById("busId").value.trim();
+    if (!busId) {
+      alert("Please enter Bus ID");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported");
+      return;
+    }
+
+    status.innerText = "📡 Waiting for GPS permission...";
+
+    navigator.geolocation.watchPosition(
+      position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        socket.emit("driverLocation", {
+          busId,
+          lat,
+          lon
+        });
+
+        status.innerText = `📍 Sending location: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      },
+      error => {
+        status.innerText = "❌ Location permission denied";
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
+    );
+  }
 </script>
+
 </body>
 </html>

@@ -1,84 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Bus Tracking – Login</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{
-  background:#0f172a;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-  font-family:Arial;
-}
-.card{
-  width:350px;
-  background:#020617;
-  padding:25px;
-  border-radius:10px;
-  box-shadow:0 0 15px black;
-}
-.tabs{
-  display:flex;
-  gap:10px;
-}
-.tabs button{
-  flex:1;
-  padding:10px;
-  background:#1e293b;
-  border:none;
-  color:white;
-  cursor:pointer;
-}
-.tabs button.active{
-  background:#2563eb;
-}
-input,select,button.main{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border-radius:6px;
-  border:none;
-}
-button.main{
-  background:#2563eb;
-  color:white;
-  cursor:pointer;
-}
-</style>
+  <title>Bus Tracking Login</title>
 </head>
-
 <body>
-<div class="card">
 
-<div class="tabs">
-  <button id="signinTab" class="active" onclick="showSignin()">Sign In</button>
-  <button id="signupTab" onclick="showSignup()">Sign Up</button>
-</div>
+<h2>🚌 Bus Tracking System</h2>
 
-<div id="signinBox">
-  <input id="signinEmail" placeholder="Email">
-  <input id="signinPassword" type="password" placeholder="Password">
-  <button class="main" onclick="signin()">Sign In</button>
-</div>
-
-<div id="signupBox" style="display:none">
-  <input id="signupEmail" placeholder="Email">
-  <input id="signupPassword" type="password" placeholder="Password">
-
-  <select id="signupRole">
-    <option value="user">User</option>
-    <option value="driver">Driver</option>
-    <option value="admin">Admin</option>
-  </select>
-
-  <button class="main" onclick="signup()">Create Account</button>
-</div>
+<button onclick="login('driver')">🚍 Driver</button><br><br>
+<button onclick="login('user')">🗺 User</button><br><br>
+<button onclick="login('admin')">🧑‍💼 Admin</button>
 
 <script src="auth.js"></script>
-</div>
 </body>
 </html>

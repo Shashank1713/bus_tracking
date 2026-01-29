@@ -1,38 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-<style>#map{height:100vh}</style>
+  <meta charset="UTF-8" />
+  <title>User – Live Bus Tracking</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+    }
+
+    #topbar {
+      padding: 10px;
+      background: #1f1f1f;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    select {
+      padding: 6px;
+      font-size: 15px;
+      border-radius: 4px;
+    }
+
+    #map {
+      height: calc(100vh - 50px);
+      width: 100%;
+    }
+  </style>
 </head>
+
 <body>
+
+<div id="topbar">
+  🚍 Select Bus:
+  <select id="busSelect">
+    <option value="">All Buses</option>
+  </select>
+</div>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-const map=L.map("map").setView([15.85,74.5],13);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+  // Initialize map
+  const map = L.map("map").setView([15.85, 74.50], 12);
 
-const busIcon=L.icon({
- iconUrl:"https://cdn-icons-png.flaticon.com/512/3774/3774299.png",
- iconSize:[48,48]
-});
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
 
-const markers={};
-const socket=io();
+  // 🔥 CUSTOM BUS ICON (YOUR PNG)
+  const busIcon = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/1068/1068631.png",
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    popupAnchor: [0, -24]
+  });
 
-socket.on("fleetUpdate",buses=>{
- for(const id in buses){
-  const {lat,lon}=buses[id];
-  if(!markers[id]){
-   markers[id]=L.marker([lat,lon],{icon:busIcon}).addTo(map);
-  }else{
-   markers[id].setLatLng([lat,lon]);
+  const socket = io();
+  const markers = {};
+  const busSelect = document.getElementById("busSelect");
+
+  // 🚍 Smooth animation function
+  function animateMarker(marker, newLatLng) {
+    const duration = 1000;
+    const frames = 30;
+    const start = marker.getLatLng();
+
+    let frame = 0;
+    const deltaLat = (newLatLng.lat - start.lat) / frames;
+    const deltaLng = (newLatLng.lng - start.lng) / frames;
+
+    const interval = setInterval(() => {
+      frame++;
+      marker.setLatLng([
+        start.lat + deltaLat * frame,
+        start.lng + deltaLng * frame
+      ]);
+
+      if (frame >= frames) {
+        clearInterval(interval);
+        marker.setLatLng(newLatLng);
+      }
+    }, duration / frames);
   }
-  map.setView([lat,lon],16);
- }
-});
+
+  // 🔄 Receive live bus updates
+  socket.on("fleetUpdate", buses => {
+
+    busSelect.innerHTML = '<option value="">All Buses</option>';
+
+    Object.keys(buses).forEach(busId => {
+      const { lat, lon } = buses[busId];
+
+      // Create marker if not exists
+      if (!markers[busId]) {
+        markers[busId] = L.marker([lat, lon], { icon: busIcon })
+          .addTo(map)
+          .bindPopup("🚌 Bus ID: " + busId);
+      } else {
+        animateMarker(markers[busId], L.latLng(lat, lon));
+      }
+
+      // Add bus to dropdown
+      const option = document.createElement("option");
+      option.value = busId;
+      option.text = busId;
+      busSelect.appendChild(option);
+    });
+
+    // Auto-focus selected bus
+    const selected = busSelect.value;
+    if (selected && buses[selected]) {
+      map.setView(
+        [buses[selected].lat, buses[selected].lon],
+        16
+      );
+    }
+  });
+
+  // Focus map when user selects bus
+  busSelect.addEventListener("change", () => {
+    const id = busSelect.value;
+    if (markers[id]) {
+      map.setView(markers[id].getLatLng(), 16);
+      markers[id].openPopup();
+    }
+  });
 </script>
+
 </body>
 </html>
