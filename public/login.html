@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login | Bus Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Poppins, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, #020617, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .box {
+      width: 360px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+    }
+
+    .password-box {
+      position: relative;
+    }
+
+    .password-box span {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 14px;
+      color: #38bdf8;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #38bdf8;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .toggle {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: #38bdf8;
+    }
+
+    .signup {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2 id="title">Sign In</h2>
+
+  <!-- SIGN IN -->
+  <div class="signin">
+    <input placeholder="Email" />
+    <div class="password-box">
+      <input type="password" id="signinPass" placeholder="Password">
+      <span onclick="toggle('signinPass')">Show</span>
+    </div>
+    <button onclick="signin()">Sign In</button>
+  </div>
+
+  <!-- SIGN UP -->
+  <div class="signup">
+    <input placeholder="Name" />
+    <input placeholder="Email" />
+    <div class="password-box">
+      <input type="password" id="signupPass" placeholder="Create Password">
+      <span onclick="toggle('signupPass')">Show</span>
+    </div>
+    <button onclick="signup()">Sign Up</button>
+  </div>
+
+  <div class="toggle" onclick="switchMode()">
+    Don’t have an account? Sign Up
+  </div>
+</div>
+
+<script>
+  let isSignup = false;
+
+  function switchMode() {
+    isSignup = !isSignup;
+
+    document.querySelector(".signin").style.display = isSignup ? "none" : "block";
+    document.querySelector(".signup").style.display = isSignup ? "block" : "none";
+    document.getElementById("title").innerText = isSignup ? "Sign Up" : "Sign In";
+
+    document.querySelector(".toggle").innerText =
+      isSignup ? "Already have an account? Sign In" : "Don’t have an account? Sign Up";
+  }
+
+  function toggle(id) {
+    const input = document.getElementById(id);
+    input.type = input.type === "password" ? "text" : "password";
+  }
+
+  function signin() {
+    alert("Sign In clicked (connect backend later)");
+    window.location.href = "auth.html";
+  }
+
+  function signup() {
+    alert("Sign Up clicked (connect backend later)");
+    window.location.href = "auth.html";
+  }
+</script>
+
+</body>
+</html>
