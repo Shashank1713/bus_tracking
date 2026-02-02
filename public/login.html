@@ -1,42 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <title>Login | Bus Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Poppins, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #020617, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      padding: 30px;
+      border-radius: 22px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 22px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+    }
+
+    .password-box {
+      position: relative;
+    }
+
+    .toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.75rem;
+      cursor: pointer;
+      color: #38bdf8;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #38bdf8;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    button:hover {
+      background: #0ea5e9;
+    }
+
+    .error {
+      margin-top: 12px;
+      text-align: center;
+      color: #f87171;
+      font-size: 0.85rem;
+    }
+
+    .switch {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #cbd5f5;
+      cursor: pointer;
+    }
+
+    .switch span {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>Login</h2>
+<div class="card">
+  <h2 id="title">Login</h2>
+  <p class="subtitle" id="subtitle">Sign in to continue</p>
 
-<input id="email" placeholder="Email"><br><br>
-<input id="password" type="password" placeholder="Password"><br><br>
+  <input id="email" type="email" placeholder="Email" required>
 
-<button onclick="login()">Login</button>
+  <div class="password-box">
+    <input id="password" type="password" placeholder="Password" required>
+    <span class="toggle" onclick="togglePassword()">Show</span>
+  </div>
 
-<div id="error" style="color:red;margin-top:10px;"></div>
+  <button onclick="submitForm()">Login</button>
+
+  <div class="error" id="error"></div>
+
+  <div class="switch" onclick="toggleMode()">
+    Don’t have an account? <span>Sign up</span>
+  </div>
+</div>
 
 <script>
-async function login() {
-  const email = email.value;
-  const password = password.value;
-  const errorBox = document.getElementById("error");
+  let isSignup = false;
 
-  errorBox.innerText = "";
+  function toggleMode() {
+    isSignup = !isSignup;
 
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
-  });
+    document.getElementById("title").innerText = isSignup ? "Sign Up" : "Login";
+    document.getElementById("subtitle").innerText =
+      isSignup ? "Create a new account" : "Sign in to continue";
 
-  const data = await res.json();
+    document.querySelector("button").innerText =
+      isSignup ? "Create Account" : "Login";
 
-  if (!res.ok) {
-    errorBox.innerText = data.error;
-    return;
+    document.querySelector(".switch").innerHTML =
+      isSignup
+        ? "Already have an account? <span>Login</span>"
+        : "Don’t have an account? <span>Sign up</span>";
+
+    document.getElementById("error").innerText = "";
   }
 
-  location.href = "auth.html";
-}
+  function togglePassword() {
+    const pwd = document.getElementById("password");
+    pwd.type = pwd.type === "password" ? "text" : "password";
+  }
+
+  async function submitForm() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const errorBox = document.getElementById("error");
+
+    errorBox.innerText = "";
+
+    const url = isSignup ? "/api/signup" : "/api/login";
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorBox.innerText = data.error || "Something went wrong";
+      return;
+    }
+
+    if (isSignup) {
+      errorBox.style.color = "#38bdf8";
+      errorBox.innerText = "OTP sent to email. Verify before login.";
+    } else {
+      window.location.href = "auth.html";
+    }
+  }
 </script>
 
 </body>
