@@ -1,16 +1,155 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Bus Tracking Login</title>
+  <meta charset="UTF-8">
+  <title>Bus Tracking | Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Poppins, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #020617, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    /* LOGOUT */
+    .logout-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .logout-btn:hover {
+      background: #dc2626;
+    }
+
+    /* CONTAINER */
+    .container {
+      width: 90%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      padding: 30px;
+      border-radius: 24px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+    }
+
+    p.subtitle {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    /* OPTIONS */
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 18px;
+      cursor: pointer;
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .option:hover {
+      transform: translateY(-4px);
+      background: rgba(0,0,0,0.55);
+    }
+
+    .icon {
+      font-size: 2rem;
+    }
+
+    .text {
+      text-align: left;
+    }
+
+    .text h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .text p {
+      margin: 4px 0 0;
+      font-size: 0.8rem;
+      color: #cbd5f5;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>🚌 Bus Tracking System</h2>
+<!-- LOGOUT -->
+<button class="logout-btn" onclick="logout()">Logout</button>
 
-<button onclick="login('driver')">🚍 Driver</button><br><br>
-<button onclick="login('user')">🗺 User</button><br><br>
-<button onclick="login('admin')">🧑‍💼 Admin</button>
+<!-- MAIN CARD -->
+<div class="container">
+  <h2>🚌 Bus Tracking System</h2>
+  <p class="subtitle">Choose your role to continue</p>
 
-<script src="auth.js"></script>
+  <div class="option" onclick="go('driver.html')">
+    <div class="icon">🚍</div>
+    <div class="text">
+      <h3>Driver</h3>
+      <p>Share live bus location</p>
+    </div>
+  </div>
+
+  <div class="option" onclick="go('user.html')">
+    <div class="icon">🗺️</div>
+    <div class="text">
+      <h3>User</h3>
+      <p>Track buses in real time</p>
+    </div>
+  </div>
+
+  <div class="option" onclick="go('admin.html')">
+    <div class="icon">🧑‍💼</div>
+    <div class="text">
+      <h3>Admin</h3>
+      <p>Monitor entire fleet</p>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script>
+  function go(page) {
+    window.location.href = page;
+  }
+
+  function logout() {
+    fetch("/api/logout").then(() => {
+      window.location.href = "login.html";
+    });
+  }
+</script>
+
 </body>
 </html>

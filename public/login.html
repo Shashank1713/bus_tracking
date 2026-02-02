@@ -60,6 +60,15 @@
       color: #38bdf8;
     }
 
+    .strength {
+      font-size: 0.8rem;
+      margin-top: -6px;
+      margin-bottom: 8px;
+    }
+
+    .weak { color: #f87171; }
+    .strong { color: #4ade80; }
+
     button {
       width: 100%;
       padding: 12px;
@@ -92,7 +101,7 @@
 
   <!-- SIGN IN -->
   <div class="signin">
-    <input placeholder="Email" />
+    <input id="signinEmail" placeholder="Email" />
     <div class="password-box">
       <input type="password" id="signinPass" placeholder="Password">
       <span onclick="toggle('signinPass')">Show</span>
@@ -102,12 +111,16 @@
 
   <!-- SIGN UP -->
   <div class="signup">
-    <input placeholder="Name" />
-    <input placeholder="Email" />
+    <input id="signupName" placeholder="Name" />
+    <input id="signupEmail" placeholder="Email" />
+
     <div class="password-box">
-      <input type="password" id="signupPass" placeholder="Create Password">
+      <input type="password" id="signupPass" placeholder="Create Password" onkeyup="checkStrength()">
       <span onclick="toggle('signupPass')">Show</span>
     </div>
+
+    <div id="strengthMsg" class="strength"></div>
+
     <button onclick="signup()">Sign Up</button>
   </div>
 
@@ -135,13 +148,62 @@
     input.type = input.type === "password" ? "text" : "password";
   }
 
+  function checkStrength() {
+    const pass = document.getElementById("signupPass").value;
+    const msg = document.getElementById("strengthMsg");
+    const hasSpecial = /[^A-Za-z0-9]/.test(pass);
+
+    if (pass.length < 7) {
+      msg.innerText = "❌ Password must be at least 7 characters";
+      msg.className = "strength weak";
+      return false;
+    }
+
+    if (!hasSpecial) {
+      msg.innerText = "❌ Weak password (add special character)";
+      msg.className = "strength weak";
+      return false;
+    }
+
+    msg.innerText = "✅ Strong password";
+    msg.className = "strength strong";
+    return true;
+  }
+
   function signin() {
-    alert("Sign In clicked (connect backend later)");
+    const email = document.getElementById("signinEmail").value.trim();
+    const password = document.getElementById("signinPass").value.trim();
+
+    if (!email) {
+      alert("❌ Please enter email");
+      return;
+    }
+
+    if (!password) {
+      alert("❌ Please enter password");
+      return;
+    }
+
+    alert("✅ Sign In successful (demo)");
     window.location.href = "auth.html";
   }
 
   function signup() {
-    alert("Sign Up clicked (connect backend later)");
+    const name = document.getElementById("signupName").value.trim();
+    const email = document.getElementById("signupEmail").value.trim();
+    const password = document.getElementById("signupPass").value.trim();
+
+    if (!name || !email || !password) {
+      alert("❌ All fields are required");
+      return;
+    }
+
+    if (!checkStrength()) {
+      alert("❌ Please use a strong password");
+      return;
+    }
+
+    alert("✅ Sign Up successful (demo)");
     window.location.href = "auth.html";
   }
 </script>

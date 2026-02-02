@@ -1,140 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>User – Live Bus Tracking</title>
+  <meta charset="UTF-8">
+  <title>User | Bus Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
 
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
+      background: #020617;
       color: white;
-    }
-
-    #topbar {
-      padding: 10px;
-      background: #1f1f1f;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    select {
-      padding: 6px;
-      font-size: 15px;
-      border-radius: 4px;
+      font-family: Arial, sans-serif;
     }
 
     #map {
-      height: calc(100vh - 50px);
+      height: 100vh;
       width: 100%;
+    }
+
+    .logout-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 10px 16px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .status {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.6);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 
 <body>
 
-<div id="topbar">
-  🚍 Select Bus:
-  <select id="busSelect">
-    <option value="">All Buses</option>
-  </select>
-</div>
+<button class="logout-btn" onclick="logout()">Logout</button>
+<div id="status" class="status">Waiting for bus location…</div>
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Socket.IO -->
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-  // Initialize map
-  const map = L.map("map").setView([15.85, 74.50], 12);
+  /* ---------- MAP INIT ---------- */
+  const map = L.map("map").setView([20.5937, 78.9629], 5); // India center
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
-  // 🔥 CUSTOM BUS ICON (YOUR PNG)
+  /* ---------- BUS ICON ---------- */
   const busIcon = L.icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/1068/1068631.png",
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
-    popupAnchor: [0, -24]
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
   });
 
+  /* ---------- SOCKET ---------- */
   const socket = io();
-  const markers = {};
-  const busSelect = document.getElementById("busSelect");
+  const buses = {};
+  const status = document.getElementById("status");
 
-  // 🚍 Smooth animation function
-  function animateMarker(marker, newLatLng) {
-    const duration = 1000;
-    const frames = 30;
-    const start = marker.getLatLng();
+  socket.on("fleetUpdate", data => {
+    status.innerText = "Live bus tracking active";
 
-    let frame = 0;
-    const deltaLat = (newLatLng.lat - start.lat) / frames;
-    const deltaLng = (newLatLng.lng - start.lng) / frames;
+    Object.keys(data).forEach(busId => {
+      const { lat, lon } = data[busId];
 
-    const interval = setInterval(() => {
-      frame++;
-      marker.setLatLng([
-        start.lat + deltaLat * frame,
-        start.lng + deltaLng * frame
-      ]);
-
-      if (frame >= frames) {
-        clearInterval(interval);
-        marker.setLatLng(newLatLng);
-      }
-    }, duration / frames);
-  }
-
-  // 🔄 Receive live bus updates
-  socket.on("fleetUpdate", buses => {
-
-    busSelect.innerHTML = '<option value="">All Buses</option>';
-
-    Object.keys(buses).forEach(busId => {
-      const { lat, lon } = buses[busId];
-
-      // Create marker if not exists
-      if (!markers[busId]) {
-        markers[busId] = L.marker([lat, lon], { icon: busIcon })
+      if (!buses[busId]) {
+        buses[busId] = L.marker([lat, lon], { icon: busIcon })
           .addTo(map)
-          .bindPopup("🚌 Bus ID: " + busId);
+          .bindPopup(`🚌 Bus ID: ${busId}`);
       } else {
-        animateMarker(markers[busId], L.latLng(lat, lon));
+        buses[busId].setLatLng([lat, lon]);
       }
 
-      // Add bus to dropdown
-      const option = document.createElement("option");
-      option.value = busId;
-      option.text = busId;
-      busSelect.appendChild(option);
+      map.setView([lat, lon], 15);
     });
+  });
 
-    // Auto-focus selected bus
-    const selected = busSelect.value;
-    if (selected && buses[selected]) {
-      map.setView(
-        [buses[selected].lat, buses[selected].lon],
-        16
-      );
+  socket.on("busStopped", busId => {
+    if (buses[busId]) {
+      map.removeLayer(buses[busId]);
+      delete buses[busId];
+      status.innerText = `Bus ${busId} stopped sharing`;
     }
   });
 
-  // Focus map when user selects bus
-  busSelect.addEventListener("change", () => {
-    const id = busSelect.value;
-    if (markers[id]) {
-      map.setView(markers[id].getLatLng(), 16);
-      markers[id].openPopup();
-    }
-  });
+  /* ---------- LOGOUT ---------- */
+  function logout() {
+    fetch("/api/logout").then(() => {
+      window.location.href = "login.html";
+    });
+  }
 </script>
 
 </body>
