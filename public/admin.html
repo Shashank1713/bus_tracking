@@ -20,22 +20,23 @@
     }
 
     header {
-      padding: 12px;
-      text-align: center;
       background: #0f172a;
+      padding: 14px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
     }
 
     #map {
-      height: 90vh;
+      height: 92vh;
+      width: 100%;
     }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h2>🧑‍💼 Admin – Live Fleet Map</h2>
-</header>
+<header>🧑‍💼 Admin – Live Bus Fleet</header>
 
 <div id="map"></div>
 
@@ -46,30 +47,41 @@
 <script>
   const socket = io();
 
+  // Initialize map
   const map = L.map("map").setView([15.3173, 75.7139], 6);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
+  // Custom bus icon (ONLY icon shown)
+  const busIcon = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/1068/1068631.png",
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+    popupAnchor: [0, -18]
+  });
+
+  // Store markers
   let markers = {};
 
+  // Listen for fleet updates
   socket.on("fleetUpdate", buses => {
 
-    // Remove old markers
-    Object.keys(markers).forEach(id => {
-      if (!buses[id]) {
-        map.removeLayer(markers[id]);
-        delete markers[id];
+    // Remove buses that stopped sharing
+    Object.keys(markers).forEach(busId => {
+      if (!buses[busId]) {
+        map.removeLayer(markers[busId]);
+        delete markers[busId];
       }
     });
 
-    // Add / update markers
+    // Add or update buses
     Object.keys(buses).forEach(busId => {
       const { lat, lon } = buses[busId];
 
       if (!markers[busId]) {
-        markers[busId] = L.marker([lat, lon])
+        markers[busId] = L.marker([lat, lon], { icon: busIcon })
           .addTo(map)
           .bindPopup(`🚌 ${busId}`);
       } else {
