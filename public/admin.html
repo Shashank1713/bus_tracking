@@ -5,58 +5,77 @@
   <title>Admin | Bus Tracking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
   <style>
     body {
       margin: 0;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #020617, #0f172a);
-      font-family: Arial, sans-serif;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .card {
-      width: 90%;
-      max-width: 600px;
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(14px);
-      padding: 26px;
-      border-radius: 18px;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    pre {
       background: #020617;
-      padding: 14px;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      max-height: 400px;
-      overflow-y: auto;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      padding: 12px;
+      text-align: center;
+      background: #0f172a;
+    }
+
+    #map {
+      height: 90vh;
     }
   </style>
 </head>
 
 <body>
 
-<div class="card">
-  <h2>🧑‍💼 Admin Dashboard</h2>
-  <pre id="fleet">Waiting for live data...</pre>
-</div>
+<header>
+  <h2>🧑‍💼 Admin – Live Fleet Map</h2>
+</header>
 
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
   const socket = io();
-  const fleet = document.getElementById("fleet");
+
+  const map = L.map("map").setView([15.3173, 75.7139], 6);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
+
+  let markers = {};
 
   socket.on("fleetUpdate", buses => {
-    fleet.textContent = JSON.stringify(buses, null, 2);
+
+    // Remove old markers
+    Object.keys(markers).forEach(id => {
+      if (!buses[id]) {
+        map.removeLayer(markers[id]);
+        delete markers[id];
+      }
+    });
+
+    // Add / update markers
+    Object.keys(buses).forEach(busId => {
+      const { lat, lon } = buses[busId];
+
+      if (!markers[busId]) {
+        markers[busId] = L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(`🚌 ${busId}`);
+      } else {
+        markers[busId].setLatLng([lat, lon]);
+      }
+    });
   });
 </script>
 
