@@ -1,211 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Login | Bus Tracking</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: Poppins, sans-serif;
-    }
-
-    body {
-      margin: 0;
-      height: 100vh;
-      background: linear-gradient(135deg, #020617, #0f172a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-    }
-
-    .box {
-      width: 360px;
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(14px);
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 10px;
-      border: none;
-      outline: none;
-    }
-
-    .password-box {
-      position: relative;
-    }
-
-    .password-box span {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-      font-size: 14px;
-      color: #38bdf8;
-    }
-
-    .strength {
-      font-size: 0.8rem;
-      margin-top: -6px;
-      margin-bottom: 8px;
-    }
-
-    .weak { color: #f87171; }
-    .strong { color: #4ade80; }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
-      background: #38bdf8;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .toggle {
-      margin-top: 15px;
-      text-align: center;
-      font-size: 0.85rem;
-      cursor: pointer;
-      color: #38bdf8;
-    }
-
-    .signup {
-      display: none;
-    }
-  </style>
+  <title>Login</title>
 </head>
-
 <body>
 
-<div class="box">
-  <h2 id="title">Sign In</h2>
+<h2>Login</h2>
 
-  <!-- SIGN IN -->
-  <div class="signin">
-    <input id="signinEmail" placeholder="Email" />
-    <div class="password-box">
-      <input type="password" id="signinPass" placeholder="Password">
-      <span onclick="toggle('signinPass')">Show</span>
-    </div>
-    <button onclick="signin()">Sign In</button>
-  </div>
+<input id="email" placeholder="Email"><br><br>
+<input id="password" type="password" placeholder="Password"><br><br>
 
-  <!-- SIGN UP -->
-  <div class="signup">
-    <input id="signupName" placeholder="Name" />
-    <input id="signupEmail" placeholder="Email" />
+<button onclick="login()">Login</button>
 
-    <div class="password-box">
-      <input type="password" id="signupPass" placeholder="Create Password" onkeyup="checkStrength()">
-      <span onclick="toggle('signupPass')">Show</span>
-    </div>
-
-    <div id="strengthMsg" class="strength"></div>
-
-    <button onclick="signup()">Sign Up</button>
-  </div>
-
-  <div class="toggle" onclick="switchMode()">
-    Don’t have an account? Sign Up
-  </div>
-</div>
+<div id="error" style="color:red;margin-top:10px;"></div>
 
 <script>
-  let isSignup = false;
+async function login() {
+  const email = email.value;
+  const password = password.value;
+  const errorBox = document.getElementById("error");
 
-  function switchMode() {
-    isSignup = !isSignup;
+  errorBox.innerText = "";
 
-    document.querySelector(".signin").style.display = isSignup ? "none" : "block";
-    document.querySelector(".signup").style.display = isSignup ? "block" : "none";
-    document.getElementById("title").innerText = isSignup ? "Sign Up" : "Sign In";
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
 
-    document.querySelector(".toggle").innerText =
-      isSignup ? "Already have an account? Sign In" : "Don’t have an account? Sign Up";
+  const data = await res.json();
+
+  if (!res.ok) {
+    errorBox.innerText = data.error;
+    return;
   }
 
-  function toggle(id) {
-    const input = document.getElementById(id);
-    input.type = input.type === "password" ? "text" : "password";
-  }
-
-  function checkStrength() {
-    const pass = document.getElementById("signupPass").value;
-    const msg = document.getElementById("strengthMsg");
-    const hasSpecial = /[^A-Za-z0-9]/.test(pass);
-
-    if (pass.length < 7) {
-      msg.innerText = "❌ Password must be at least 7 characters";
-      msg.className = "strength weak";
-      return false;
-    }
-
-    if (!hasSpecial) {
-      msg.innerText = "❌ Weak password (add special character)";
-      msg.className = "strength weak";
-      return false;
-    }
-
-    msg.innerText = "✅ Strong password";
-    msg.className = "strength strong";
-    return true;
-  }
-
-  function signin() {
-    const email = document.getElementById("signinEmail").value.trim();
-    const password = document.getElementById("signinPass").value.trim();
-
-    if (!email) {
-      alert("❌ Please enter email");
-      return;
-    }
-
-    if (!password) {
-      alert("❌ Please enter password");
-      return;
-    }
-
-    alert("✅ Sign In successful (demo)");
-    window.location.href = "auth.html";
-  }
-
-  function signup() {
-    const name = document.getElementById("signupName").value.trim();
-    const email = document.getElementById("signupEmail").value.trim();
-    const password = document.getElementById("signupPass").value.trim();
-
-    if (!name || !email || !password) {
-      alert("❌ All fields are required");
-      return;
-    }
-
-    if (!checkStrength()) {
-      alert("❌ Please use a strong password");
-      return;
-    }
-
-    alert("✅ Sign Up successful (demo)");
-    window.location.href = "auth.html";
-  }
+  location.href = "auth.html";
+}
 </script>
 
 </body>

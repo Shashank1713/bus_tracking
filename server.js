@@ -1,9 +1,10 @@
 require("dotenv").config();
 const express = require("express");
-const http = require("http");
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const session = require("express-session");
+const nodemailer = require("nodemailer");
+const http = require("http");
 const { Server } = require("socket.io");
 
 const User = require("./models/User");
@@ -12,7 +13,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-/* Middleware */
 app.use(express.json());
 app.use(express.static("public"));
 
@@ -22,80 +22,112 @@ app.use(session({
   saveUninitialized: false
 }));
 
-/* MongoDB */
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ MongoDB error", err));
+  .catch(err => console.log("❌ MongoDB error", err));
 
-/* AUTH APIs */
-
-// Signup
-app.post("/api/signup", async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password)
-    return res.status(400).json({ message: "All fields required" });
-
-  const hashed = await bcrypt.hash(password, 10);
-
-  try {
-    await User.create({ name, email, password: hashed });
-    res.json({ message: "Signup successful" });
-  } catch {
-    res.status(400).json({ message: "User already exists" });
+/* ---------- EMAIL ---------- */
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
-// Login
+/* ---------- SIGNUP ---------- */
+app.post("/api/signup", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (password.length < 6 || !/[!@#$%^&*]/.test(password)) {
+    return res.status(400).json({ error: "Weak password" });
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  try {
+    await User.create({
+      email,
+      password: hashed,
+      otp,
+      otpExpires: Date.now() + 5 * 60 * 1000
+    });
+
+    await transporter.sendMail({
+      to: email,
+      subject: "Bus Tracking OTP",
+      text: `Your OTP is ${otp}`
+    });
+
+    res.json({ message: "OTP sent" });
+  } catch {
+    res.status(400).json({ error: "User already exists" });
+  }
+});
+
+/* ---------- VERIFY OTP ---------- */
+app.post("/api/verify-otp", async (req, res) => {
+  const { email, otp } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
+    return res.status(400).json({ error: "Invalid or expired OTP" });
+  }
+
+  user.isVerified = true;
+  user.otp = null;
+  user.otpExpires = null;
+  await user.save();
+
+  res.json({ success: true });
+});
+
+/* ---------- LOGIN (FIXED) ---------- */
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
-  if (!user) return res.status(401).json({ message: "Invalid credentials" });
-
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.status(401).json({ message: "Invalid credentials" });
-
-  req.session.userId = user._id;
-  req.session.role = user.role;
-
-  res.json({ message: "Login successful" });
-});
-
-// Logout
-app.get("/api/logout", (req, res) => {
-  req.session.destroy(() => res.json({ message: "Logged out" }));
-});
-
-// Protect Admin
-function requireAdmin(req, res, next) {
-  if (req.session.role !== "admin") {
-    return res.status(403).send("Access denied");
+  if (!user) {
+    return res.status(401).json({ error: "Invalid credentials" });
   }
-  next();
-}
 
-app.get("/admin.html", requireAdmin, (req, res) => {
-  res.sendFile(__dirname + "/public/admin.html");
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  if (!user.isVerified) {
+    return res.status(403).json({ error: "Email not verified" });
+  }
+
+  req.session.user = { id: user._id, role: user.role };
+  res.json({ success: true });
 });
 
-/* BUS TRACKING */
-const liveBuses = {};
+/* ---------- LOGOUT ---------- */
+app.get("/api/logout", (req, res) => {
+  req.session.destroy(() => res.sendStatus(200));
+});
+
+/* ---------- SOCKET.IO (BUS TRACKING) ---------- */
+const buses = {};
 
 io.on("connection", socket => {
-
-  socket.on("driverLocation", ({ busId, lat, lon }) => {
-    liveBuses[busId] = { lat, lon };
-    io.emit("fleetUpdate", liveBuses);
+  socket.on("driverLocation", data => {
+    buses[data.busId] = data;
+    io.emit("fleetUpdate", buses);
   });
 
   socket.on("stopSharing", ({ busId }) => {
-    delete liveBuses[busId];
+    delete buses[busId];
     io.emit("busStopped", busId);
   });
-
 });
 
-/* Start */
+/* ---------- START ---------- */
 server.listen(process.env.PORT || 3000, () => {
   console.log("🚀 Server running");
 });
