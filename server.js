@@ -1,4 +1,5 @@
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
+
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
@@ -37,7 +38,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-/* ---------- SIGNUP ---------- */
+/* ---------- AUTH ---------- */
 app.post("/api/signup", async (req, res) => {
   const { email, password } = req.body;
 
@@ -62,13 +63,12 @@ app.post("/api/signup", async (req, res) => {
       text: `Your OTP is ${otp}`
     });
 
-    res.json({ message: "OTP sent" });
+    res.json({ message: "OTP sent to email" });
   } catch {
     res.status(400).json({ error: "User already exists" });
   }
 });
 
-/* ---------- VERIFY OTP ---------- */
 app.post("/api/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
   const user = await User.findOne({ email });
@@ -85,49 +85,47 @@ app.post("/api/verify-otp", async (req, res) => {
   res.json({ success: true });
 });
 
-/* ---------- LOGIN (FIXED) ---------- */
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
+  if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
   const match = await bcrypt.compare(password, user.password);
-  if (!match) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
+  if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-  if (!user.isVerified) {
-    return res.status(403).json({ error: "Email not verified" });
-  }
+  if (!user.isVerified) return res.status(403).json({ error: "Email not verified" });
 
   req.session.user = { id: user._id, role: user.role };
   res.json({ success: true });
 });
 
-/* ---------- LOGOUT ---------- */
 app.get("/api/logout", (req, res) => {
   req.session.destroy(() => res.sendStatus(200));
 });
 
-/* ---------- SOCKET.IO (BUS TRACKING) ---------- */
+/* ---------- SOCKET.IO (MULTIPLE BUS) ---------- */
 const buses = {};
 
 io.on("connection", socket => {
-  socket.on("driverLocation", data => {
-    buses[data.busId] = data;
+
+  socket.on("driverLocation", ({ busId, lat, lon }) => {
+    buses[busId] = {
+      busId,
+      lat,
+      lon,
+      updatedAt: Date.now()
+    };
     io.emit("fleetUpdate", buses);
   });
 
   socket.on("stopSharing", ({ busId }) => {
     delete buses[busId];
-    io.emit("busStopped", busId);
+    io.emit("fleetUpdate", buses);
   });
+
 });
 
-/* ---------- START ---------- */
 server.listen(process.env.PORT || 3000, () => {
   console.log("🚀 Server running");
 });

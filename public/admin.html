@@ -2,118 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
+  <title>Admin | Bus Tracking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
   <style>
     body {
       margin: 0;
-      background: #020617;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #020617, #0f172a);
+      font-family: Arial, sans-serif;
       color: white;
-      font-family: Poppins, sans-serif;
-      padding: 15px;
-    }
-
-    h2 {
-      margin-bottom: 15px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 15px;
-      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .card {
-      background: #1e293b;
-      padding: 15px;
-      border-radius: 15px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      width: 90%;
+      max-width: 600px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      padding: 26px;
+      border-radius: 18px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
     }
 
-    .card h3 {
-      margin: 0;
-      font-size: 0.9rem;
-      opacity: 0.8;
+    h2 {
+      text-align: center;
+      margin-bottom: 16px;
     }
 
-    .card p {
-      font-size: 1.8rem;
-      margin-top: 5px;
-    }
-
-    #map {
-      height: 60vh;
-      border-radius: 15px;
-      overflow: hidden;
+    pre {
+      background: #020617;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      max-height: 400px;
+      overflow-y: auto;
     }
   </style>
 </head>
 
 <body>
 
-<h2>🧑‍💼 Admin Dashboard</h2>
-
-<div class="stats">
-  <div class="card">
-    <h3>Live Buses</h3>
-    <p id="busCount">0</p>
-  </div>
-  <div class="card">
-    <h3>Status</h3>
-    <p>Online</p>
-  </div>
-  <div class="card">
-    <h3>System</h3>
-    <p>Active</p>
-  </div>
+<div class="card">
+  <h2>🧑‍💼 Admin Dashboard</h2>
+  <pre id="fleet">Waiting for live data...</pre>
 </div>
 
-<div id="map"></div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
-  const map = L.map("map").setView([15.85, 74.5], 12);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-  const busIcon = L.icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/1068/1068631.png",
-    iconSize: [46, 46],
-    iconAnchor: [23, 23]
-  });
-
   const socket = io();
-  const markers = {};
-  const countEl = document.getElementById("busCount");
+  const fleet = document.getElementById("fleet");
 
   socket.on("fleetUpdate", buses => {
-    countEl.innerText = Object.keys(buses).length;
-
-    Object.keys(buses).forEach(busId => {
-      const { lat, lon } = buses[busId];
-
-      if (!markers[busId]) {
-        markers[busId] = L.marker([lat, lon], { icon: busIcon })
-          .addTo(map)
-          .bindPopup(`🚌 ${busId}`);
-      } else {
-        markers[busId].setLatLng([lat, lon]);
-      }
-    });
-  });
-
-  socket.on("busStopped", ({ busId }) => {
-    if (markers[busId]) {
-      map.removeLayer(markers[busId]);
-      delete markers[busId];
-      countEl.innerText = Object.keys(markers).length;
-    }
+    fleet.textContent = JSON.stringify(buses, null, 2);
   });
 </script>
 

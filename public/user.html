@@ -5,116 +5,91 @@
   <title>User | Bus Tracking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-
   <style>
     body {
       margin: 0;
-      background: #020617;
-      color: white;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #020617, #0f172a);
       font-family: Arial, sans-serif;
-    }
-
-    #map {
-      height: 100vh;
-      width: 100%;
-    }
-
-    .logout-btn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1000;
-      padding: 10px 16px;
-      background: #ef4444;
       color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .status {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      z-index: 1000;
-      background: rgba(0,0,0,0.6);
-      padding: 10px 14px;
+    .card {
+      width: 380px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      padding: 26px;
+      border-radius: 18px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
       border-radius: 8px;
-      font-size: 0.9rem;
+      border: none;
+      margin-bottom: 16px;
+    }
+
+    pre {
+      background: #020617;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      overflow-x: auto;
     }
   </style>
 </head>
 
 <body>
 
-<button class="logout-btn" onclick="logout()">Logout</button>
-<div id="status" class="status">Waiting for bus location…</div>
+<div class="card">
+  <h2>🗺 Track a Bus</h2>
 
-<div id="map"></div>
+  <select id="busSelect">
+    <option>Select a bus</option>
+  </select>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <pre id="busInfo">No bus selected</pre>
+</div>
 
-<!-- Socket.IO -->
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
-  /* ---------- MAP INIT ---------- */
-  const map = L.map("map").setView([20.5937, 78.9629], 5); // India center
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap"
-  }).addTo(map);
-
-  /* ---------- BUS ICON ---------- */
-  const busIcon = L.icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/1068/1068631.png",
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
-  });
-
-  /* ---------- SOCKET ---------- */
   const socket = io();
-  const buses = {};
-  const status = document.getElementById("status");
+  const busSelect = document.getElementById("busSelect");
+  const busInfo = document.getElementById("busInfo");
 
-  socket.on("fleetUpdate", data => {
-    status.innerText = "Live bus tracking active";
+  let allBuses = {};
 
-    Object.keys(data).forEach(busId => {
-      const { lat, lon } = data[busId];
+  socket.on("fleetUpdate", buses => {
+    allBuses = buses;
+    busSelect.innerHTML = "<option>Select a bus</option>";
 
-      if (!buses[busId]) {
-        buses[busId] = L.marker([lat, lon], { icon: busIcon })
-          .addTo(map)
-          .bindPopup(`🚌 Bus ID: ${busId}`);
-      } else {
-        buses[busId].setLatLng([lat, lon]);
-      }
-
-      map.setView([lat, lon], 15);
+    Object.keys(buses).forEach(busId => {
+      const option = document.createElement("option");
+      option.value = busId;
+      option.textContent = busId;
+      busSelect.appendChild(option);
     });
   });
 
-  socket.on("busStopped", busId => {
-    if (buses[busId]) {
-      map.removeLayer(buses[busId]);
-      delete buses[busId];
-      status.innerText = `Bus ${busId} stopped sharing`;
+  busSelect.addEventListener("change", () => {
+    const busId = busSelect.value;
+    if (!allBuses[busId]) {
+      busInfo.textContent = "No data available";
+      return;
     }
-  });
 
-  /* ---------- LOGOUT ---------- */
-  function logout() {
-    fetch("/api/logout").then(() => {
-      window.location.href = "login.html";
-    });
-  }
+    busInfo.textContent = JSON.stringify(allBuses[busId], null, 2);
+  });
 </script>
 
 </body>
