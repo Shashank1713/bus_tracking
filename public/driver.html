@@ -1,42 +1,172 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Driver</title>
+  <meta charset="UTF-8">
+  <title>Driver | Bus Tracking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Poppins, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #020617, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    /* LOGOUT */
+    .logout-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .logout-btn:hover {
+      background: #dc2626;
+    }
+
+    /* MAIN CARD */
+    .container {
+      width: 90%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      padding: 30px;
+      border-radius: 24px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    .status {
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.4);
+      font-size: 0.9rem;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 14px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .start {
+      background: #22c55e;
+      color: #022c22;
+    }
+
+    .stop {
+      background: #ef4444;
+      color: white;
+    }
+  </style>
 </head>
+
 <body>
-<button onclick="logout()">Logout</button>
 
-<button onclick="start()">Start Sharing</button>
-<button onclick="stop()">Stop Sharing</button>
+<!-- LOGOUT -->
+<button class="logout-btn" onclick="logout()">Logout</button>
 
+<!-- MAIN -->
+<div class="container">
+  <h2>🚍 Driver Dashboard</h2>
+  <p class="subtitle">Share your live bus location</p>
+
+  <div id="status" class="status">
+    Location sharing is stopped
+  </div>
+
+  <div class="buttons">
+    <button class="btn start" onclick="startSharing()">Start Sharing</button>
+    <button class="btn stop" onclick="stopSharing()">Stop Sharing</button>
+  </div>
+</div>
+
+<!-- SOCKET.IO -->
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
-const socket = io();
-const busId = "BUS-1";
-let watchId;
+  const socket = io();
+  const busId = "BUS-1";
+  let watchId = null;
+  const statusBox = document.getElementById("status");
 
-function start() {
-  watchId = navigator.geolocation.watchPosition(pos => {
-    socket.emit("driverLocation", {
-      busId,
-      lat: pos.coords.latitude,
-      lon: pos.coords.longitude
+  function startSharing() {
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported");
+      return;
+    }
+
+    statusBox.innerText = "📡 Sharing live location…";
+
+    watchId = navigator.geolocation.watchPosition(pos => {
+      socket.emit("driverLocation", {
+        busId,
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude
+      });
+    }, () => {
+      alert("Location permission denied");
     });
-  });
-}
+  }
 
-function stop() {
-  navigator.geolocation.clearWatch(watchId);
-  socket.emit("stopSharing", { busId });
-}
+  function stopSharing() {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
 
-function logout() {
-  fetch("/api/logout").then(() => location.href="login.html");
-}
+    socket.emit("stopSharing", { busId });
+    statusBox.innerText = "❌ Location sharing stopped";
+  }
+
+  function logout() {
+    fetch("/api/logout").then(() => {
+      window.location.href = "login.html";
+    });
+  }
 </script>
+
 </body>
-</html>
-
-
 </html>
