@@ -8,10 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: Poppins, sans-serif;
-    }
+    * { box-sizing: border-box; font-family: Poppins, sans-serif; }
 
     body {
       margin: 0;
@@ -33,10 +30,7 @@
       box-shadow: 0 30px 60px rgba(0,0,0,0.6);
     }
 
-    h2 {
-      text-align: center;
-      margin-bottom: 6px;
-    }
+    h2 { text-align: center; margin-bottom: 6px; }
 
     .subtitle {
       text-align: center;
@@ -54,9 +48,7 @@
       font-size: 0.9rem;
     }
 
-    .password-box {
-      position: relative;
-    }
+    .password-box { position: relative; }
 
     .toggle {
       position: absolute;
@@ -79,8 +71,14 @@
       margin-top: 8px;
     }
 
-    button:hover {
-      background: #0ea5e9;
+    button:hover { background: #0ea5e9; }
+
+    .link {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      cursor: pointer;
     }
 
     .error {
@@ -113,12 +111,18 @@
 
   <input id="email" type="email" placeholder="Email" required>
 
-  <div class="password-box">
-    <input id="password" type="password" placeholder="Password" required>
+  <div class="password-box" id="passwordBox">
+    <input id="password" type="password" placeholder="Password">
     <span class="toggle" onclick="togglePassword()">Show</span>
   </div>
 
-  <button onclick="submitForm()">Login</button>
+  <input id="otp" placeholder="OTP" style="display:none">
+  <input id="newPassword" type="password" placeholder="New Password" style="display:none">
+
+  <button onclick="submitForm()" id="mainBtn">Login</button>
+
+  <div class="link" id="forgot" onclick="forgotPassword()">Forgot password?</div>
+  <div class="link" id="resend" onclick="resendOTP()" style="display:none">Resend OTP</div>
 
   <div class="error" id="error"></div>
 
@@ -128,60 +132,112 @@
 </div>
 
 <script>
-  let isSignup = false;
+let mode = "login"; // login | signup | verify | reset
 
-  function toggleMode() {
-    isSignup = !isSignup;
+function toggleMode() {
+  mode = mode === "login" ? "signup" : "login";
+  resetUI();
+}
 
-    document.getElementById("title").innerText = isSignup ? "Sign Up" : "Login";
-    document.getElementById("subtitle").innerText =
-      isSignup ? "Create a new account" : "Sign in to continue";
+function resetUI() {
+  error.innerText = "";
+  otp.style.display = "none";
+  newPassword.style.display = "none";
+  resend.style.display = "none";
+  forgot.style.display = mode === "login" ? "block" : "none";
 
-    document.querySelector("button").innerText =
-      isSignup ? "Create Account" : "Login";
+  title.innerText = mode === "signup" ? "Sign Up" : "Login";
+  subtitle.innerText = mode === "signup" ? "Create a new account" : "Sign in to continue";
+  mainBtn.innerText = mode === "signup" ? "Create Account" : "Login";
 
-    document.querySelector(".switch").innerHTML =
-      isSignup
-        ? "Already have an account? <span>Login</span>"
-        : "Don’t have an account? <span>Sign up</span>";
+  switchBox.innerHTML = mode === "signup"
+    ? "Already have an account? <span>Login</span>"
+    : "Don’t have an account? <span>Sign up</span>";
+}
 
-    document.getElementById("error").innerText = "";
+function togglePassword() {
+  password.type = password.type === "password" ? "text" : "password";
+}
+
+async function submitForm() {
+  error.innerText = "";
+
+  const payload = {
+    email: email.value,
+    password: password.value
+  };
+
+  let url = "/api/login";
+
+  if (mode === "signup") url = "/api/signup";
+  if (mode === "verify") url = "/api/verify-otp";
+  if (mode === "reset") {
+    url = "/api/reset-password";
+    payload.otp = otp.value;
+    payload.newPassword = newPassword.value;
   }
 
-  function togglePassword() {
-    const pwd = document.getElementById("password");
-    pwd.type = pwd.type === "password" ? "text" : "password";
+  if (mode === "verify") payload.otp = otp.value;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    error.innerText = data.error || "Something went wrong";
+    return;
   }
 
-  async function submitForm() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const errorBox = document.getElementById("error");
-
-    errorBox.innerText = "";
-
-    const url = isSignup ? "/api/signup" : "/api/login";
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      errorBox.innerText = data.error || "Something went wrong";
-      return;
-    }
-
-    if (isSignup) {
-      errorBox.style.color = "#38bdf8";
-      errorBox.innerText = "OTP sent to email. Verify before login.";
-    } else {
-      window.location.href = "auth.html";
-    }
+  if (mode === "signup") {
+    mode = "verify";
+    otp.style.display = "block";
+    resend.style.display = "block";
+    mainBtn.innerText = "Verify OTP";
+    subtitle.innerText = "Enter OTP sent to Gmail";
   }
+  else if (mode === "verify") {
+    error.style.color = "#38bdf8";
+    error.innerText = "Email verified. Login now.";
+    toggleMode();
+  }
+  else if (mode === "login") {
+    location.href = "auth.html";
+  }
+  else if (mode === "reset") {
+    error.style.color = "#38bdf8";
+    error.innerText = "Password reset successful";
+    toggleMode();
+  }
+}
+
+async function resendOTP() {
+  const res = await fetch("/api/resend-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.value })
+  });
+
+  const data = await res.json();
+  error.innerText = data.message || data.error;
+}
+
+async function forgotPassword() {
+  mode = "reset";
+  otp.style.display = "block";
+  newPassword.style.display = "block";
+  mainBtn.innerText = "Reset Password";
+  subtitle.innerText = "OTP will be sent to your email";
+
+  await fetch("/api/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.value })
+  });
+}
 </script>
 
 </body>

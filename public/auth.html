@@ -36,6 +36,7 @@
       font-weight: 600;
       cursor: pointer;
       box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      z-index: 10;
     }
 
     .logout-btn:hover {
@@ -58,7 +59,7 @@
       margin-bottom: 8px;
     }
 
-    p.subtitle {
+    .subtitle {
       font-size: 0.9rem;
       color: #94a3b8;
       margin-bottom: 24px;
@@ -138,16 +139,16 @@
   </div>
 </div>
 
-<!-- SCRIPTS -->
 <script>
   function go(page) {
     window.location.href = page;
   }
 
-  function logout() {
-    fetch("/api/logout").then(() => {
-      window.location.href = "login.html";
-    });
+  async function logout() {
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } catch (e) {}
+    window.location.href = "login.html";
   }
 </script>
 

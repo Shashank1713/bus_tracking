@@ -51,8 +51,11 @@
     .start { background: #22c55e; }
     .stop { background: #ef4444; }
 
+    .start:disabled { background: #14532d; cursor: not-allowed; }
+    .stop:disabled { background: #7f1d1d; cursor: not-allowed; }
+
     .status {
-      margin-top: 12px;
+      margin-top: 14px;
       font-size: 0.85rem;
       color: #cbd5f5;
     }
@@ -66,8 +69,8 @@
 
   <input id="busId" placeholder="Enter Bus ID (e.g. BUS-101)">
 
-  <button class="start" onclick="startSharing()">Start Sharing</button>
-  <button class="stop" onclick="stopSharing()">Stop Sharing</button>
+  <button id="startBtn" class="start" onclick="startSharing()">Start Sharing</button>
+  <button id="stopBtn" class="stop" onclick="stopSharing()" disabled>Stop Sharing</button>
 
   <div class="status" id="status">Not sharing location</div>
 </div>
@@ -76,28 +79,65 @@
 <script>
   const socket = io();
   let watchId = null;
+  let currentBusId = null;
 
   function startSharing() {
-    const busId = document.getElementById("busId").value.trim();
-    if (!busId) return alert("Please enter Bus ID");
+    const busIdInput = document.getElementById("busId");
+    const busId = busIdInput.value.trim();
 
-    watchId = navigator.geolocation.watchPosition(pos => {
-      socket.emit("driverLocation", {
-        busId,
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude
-      });
-    });
+    if (!busId) {
+      alert("Please enter Bus ID");
+      return;
+    }
 
-    document.getElementById("status").innerText = "Sharing live location...";
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported");
+      return;
+    }
+
+    currentBusId = busId;
+    busIdInput.disabled = true;
+
+    document.getElementById("status").innerText = "📡 Requesting location permission...";
+
+    watchId = navigator.geolocation.watchPosition(
+      position => {
+        socket.emit("driverLocation", {
+          busId: currentBusId,
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+
+        document.getElementById("status").innerText = "🟢 Sharing live location";
+      },
+      error => {
+        document.getElementById("status").innerText =
+          "❌ Location permission denied";
+        stopSharing();
+      },
+      { enableHighAccuracy: true }
+    );
+
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("stopBtn").disabled = false;
   }
 
   function stopSharing() {
-    const busId = document.getElementById("busId").value.trim();
-    if (watchId) navigator.geolocation.clearWatch(watchId);
-    socket.emit("stopSharing", { busId });
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
 
-    document.getElementById("status").innerText = "Location sharing stopped";
+    if (currentBusId) {
+      socket.emit("stopSharing", { busId: currentBusId });
+    }
+
+    document.getElementById("busId").disabled = false;
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stopBtn").disabled = true;
+
+    document.getElementById("status").innerText =
+      "🔴 Location sharing stopped";
   }
 </script>
 
