@@ -116,18 +116,6 @@ button.submit:hover {
   background: #eab308;
 }
 
-.toggle {
-  margin-top: 22px;
-  font-size: 0.85rem;
-  color: #e5e7eb;
-  cursor: pointer;
-}
-
-.toggle span {
-  color: #fde047;
-  font-weight: 600;
-}
-
 .error {
   margin-top: 12px;
   color: #fca5a5;
@@ -149,70 +137,73 @@ button.submit:hover {
       <button class="close" onclick="window.location.href='/'">×</button>
 
       <h2 id="title">Sign in</h2>
-      <p class="subtitle" id="subtitle">Avail super discounts, deals & rewards</p>
+      <p class="subtitle">Login with mobile number</p>
 
-      <input id="email" type="email" placeholder="Email" />
-      <input id="password" type="password" placeholder="Password" />
+      <!-- MOBILE -->
+      <input id="mobile" placeholder="Mobile Number" />
 
-      <button class="submit" onclick="submitForm()">Submit</button>
+      <!-- OTP -->
+      <input id="otp" placeholder="Enter OTP" style="display:none;" />
+
+      <button class="submit" id="sendBtn" onclick="sendOtp()">Send OTP</button>
+      <button class="submit" id="verifyBtn" style="display:none;" onclick="verifyOtp()">Verify OTP</button>
 
       <div class="error" id="error"></div>
-
-      <div class="toggle" onclick="toggleMode()">
-        Don’t have an account? <span>Sign up</span>
-      </div>
     </div>
 
   </div>
 </div>
 
 <script>
-let isSignup = false;
-
-function toggleMode() {
-  isSignup = !isSignup;
-
-  document.getElementById("title").innerText = isSignup ? "Sign up" : "Sign in";
-  document.getElementById("subtitle").innerText =
-    isSignup
-      ? "Create a new account"
-      : "Avail super discounts, deals & rewards";
-
-  document.querySelector(".toggle").innerHTML =
-    isSignup
-      ? "Already have an account? <span>Sign in</span>"
-      : "Don’t have an account? <span>Sign up</span>";
-
-  document.getElementById("error").innerText = "";
-}
-
-async function submitForm() {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+async function sendOtp() {
+  const mobile = document.getElementById("mobile").value.trim();
   const errorBox = document.getElementById("error");
 
   errorBox.innerText = "";
 
-  const url = isSignup ? "/api/signup" : "/api/login";
-
-  const res = await fetch(url, {
+  const res = await fetch("/api/send-otp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ mobile })
   });
 
   const data = await res.json();
 
   if (!res.ok) {
-    errorBox.innerText = data.error || "Something went wrong";
+    errorBox.innerText = data.error || "Failed to send OTP";
+    return;
+  }
+
+  document.getElementById("otp").style.display = "block";
+  document.getElementById("verifyBtn").style.display = "block";
+  document.getElementById("sendBtn").style.display = "none";
+
+  errorBox.style.color = "#fde047";
+  errorBox.innerText = "OTP sent to your mobile number";
+}
+
+async function verifyOtp() {
+  const mobile = document.getElementById("mobile").value.trim();
+  const otp = document.getElementById("otp").value.trim();
+  const errorBox = document.getElementById("error");
+
+  errorBox.innerText = "";
+
+  const res = await fetch("/api/verify-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mobile, otp })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    errorBox.innerText = data.error || 'Invalid OTP';
     return;
   }
 
   if (data.redirect) {
     window.location.href = data.redirect;
-  } else {
-    errorBox.style.color = "#fde047";
-    errorBox.innerText = "OTP sent to your email. Verify to continue.";
   }
 }
 </script>
