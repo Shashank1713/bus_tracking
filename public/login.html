@@ -48,7 +48,9 @@
       font-size: 0.9rem;
     }
 
-    .password-box { position: relative; }
+    .password-box {
+      position: relative;
+    }
 
     .toggle {
       position: absolute;
@@ -73,18 +75,17 @@
 
     button:hover { background: #0ea5e9; }
 
-    .link {
-      margin-top: 10px;
-      text-align: center;
-      font-size: 0.8rem;
-      color: #38bdf8;
-      cursor: pointer;
-    }
-
     .error {
       margin-top: 12px;
       text-align: center;
       color: #f87171;
+      font-size: 0.85rem;
+    }
+
+    .success {
+      color: #22c55e;
+      text-align: center;
+      margin-top: 10px;
       font-size: 0.85rem;
     }
 
@@ -109,22 +110,19 @@
   <h2 id="title">Login</h2>
   <p class="subtitle" id="subtitle">Sign in to continue</p>
 
-  <input id="email" type="email" placeholder="Email" required>
+  <input id="email" type="email" placeholder="Email">
 
-  <div class="password-box" id="passwordBox">
+  <div class="password-box">
     <input id="password" type="password" placeholder="Password">
     <span class="toggle" onclick="togglePassword()">Show</span>
   </div>
 
-  <input id="otp" placeholder="OTP" style="display:none">
-  <input id="newPassword" type="password" placeholder="New Password" style="display:none">
+  <input id="otp" placeholder="OTP (only if verifying)" style="display:none">
 
-  <button onclick="submitForm()" id="mainBtn">Login</button>
-
-  <div class="link" id="forgot" onclick="forgotPassword()">Forgot password?</div>
-  <div class="link" id="resend" onclick="resendOTP()" style="display:none">Resend OTP</div>
+  <button onclick="submitForm()">Login</button>
 
   <div class="error" id="error"></div>
+  <div class="success" id="success"></div>
 
   <div class="switch" onclick="toggleMode()">
     Don’t have an account? <span>Sign up</span>
@@ -132,112 +130,90 @@
 </div>
 
 <script>
-let mode = "login"; // login | signup | verify | reset
+  let mode = "login"; // login | signup | verify
 
-function toggleMode() {
-  mode = mode === "login" ? "signup" : "login";
-  resetUI();
-}
+  function toggleMode() {
+    mode = mode === "login" ? "signup" : "login";
+    document.getElementById("title").innerText = mode === "login" ? "Login" : "Sign Up";
+    document.getElementById("subtitle").innerText =
+      mode === "login" ? "Sign in to continue" : "Create a new account";
 
-function resetUI() {
-  error.innerText = "";
-  otp.style.display = "none";
-  newPassword.style.display = "none";
-  resend.style.display = "none";
-  forgot.style.display = mode === "login" ? "block" : "none";
+    document.querySelector("button").innerText =
+      mode === "login" ? "Login" : "Create Account";
 
-  title.innerText = mode === "signup" ? "Sign Up" : "Login";
-  subtitle.innerText = mode === "signup" ? "Create a new account" : "Sign in to continue";
-  mainBtn.innerText = mode === "signup" ? "Create Account" : "Login";
+    document.querySelector(".switch").innerHTML =
+      mode === "login"
+        ? "Don’t have an account? <span>Sign up</span>"
+        : "Already have an account? <span>Login</span>";
 
-  switchBox.innerHTML = mode === "signup"
-    ? "Already have an account? <span>Login</span>"
-    : "Don’t have an account? <span>Sign up</span>";
-}
-
-function togglePassword() {
-  password.type = password.type === "password" ? "text" : "password";
-}
-
-async function submitForm() {
-  error.innerText = "";
-
-  const payload = {
-    email: email.value,
-    password: password.value
-  };
-
-  let url = "/api/login";
-
-  if (mode === "signup") url = "/api/signup";
-  if (mode === "verify") url = "/api/verify-otp";
-  if (mode === "reset") {
-    url = "/api/reset-password";
-    payload.otp = otp.value;
-    payload.newPassword = newPassword.value;
+    document.getElementById("otp").style.display = "none";
+    clearMsg();
   }
 
-  if (mode === "verify") payload.otp = otp.value;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    error.innerText = data.error || "Something went wrong";
-    return;
+  function togglePassword() {
+    const p = document.getElementById("password");
+    p.type = p.type === "password" ? "text" : "password";
   }
 
-  if (mode === "signup") {
-    mode = "verify";
-    otp.style.display = "block";
-    resend.style.display = "block";
-    mainBtn.innerText = "Verify OTP";
-    subtitle.innerText = "Enter OTP sent to Gmail";
+  function clearMsg() {
+    document.getElementById("error").innerText = "";
+    document.getElementById("success").innerText = "";
   }
-  else if (mode === "verify") {
-    error.style.color = "#38bdf8";
-    error.innerText = "Email verified. Login now.";
-    toggleMode();
+
+  async function submitForm() {
+    clearMsg();
+    const email = email.value.trim();
+    const password = password.value;
+    const otp = document.getElementById("otp").value;
+
+    try {
+      let res, data;
+
+      if (mode === "signup") {
+        res = await fetch("/api/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        data = await res.json();
+        if (!res.ok) throw data;
+
+        mode = "verify";
+        document.getElementById("otp").style.display = "block";
+        document.querySelector("button").innerText = "Verify OTP";
+        document.getElementById("success").innerText = "OTP sent to email";
+
+      } else if (mode === "verify") {
+        res = await fetch("/api/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp })
+        });
+
+        data = await res.json();
+        if (!res.ok) throw data;
+
+        document.getElementById("success").innerText = "Email verified. Please login.";
+        mode = "login";
+        toggleMode();
+
+      } else {
+        res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        data = await res.json();
+        if (!res.ok) throw data;
+
+        window.location.href = "auth.html";
+      }
+    } catch (e) {
+      document.getElementById("error").innerText = e.error || "Something went wrong";
+    }
   }
-  else if (mode === "login") {
-    location.href = "auth.html";
-  }
-  else if (mode === "reset") {
-    error.style.color = "#38bdf8";
-    error.innerText = "Password reset successful";
-    toggleMode();
-  }
-}
-
-async function resendOTP() {
-  const res = await fetch("/api/resend-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email.value })
-  });
-
-  const data = await res.json();
-  error.innerText = data.message || data.error;
-}
-
-async function forgotPassword() {
-  mode = "reset";
-  otp.style.display = "block";
-  newPassword.style.display = "block";
-  mainBtn.innerText = "Reset Password";
-  subtitle.innerText = "OTP will be sent to your email";
-
-  await fetch("/api/forgot-password", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email.value })
-  });
-}
 </script>
 
 </body>
