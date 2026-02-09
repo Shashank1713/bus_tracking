@@ -1,219 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Login | Bus Tracking</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<title>Sign in | Bus Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-  <style>
-    * { box-sizing: border-box; font-family: Poppins, sans-serif; }
+<style>
+* { box-sizing: border-box; font-family: Poppins, sans-serif; }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #020617, #0f172a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-    }
+body {
+  margin: 0;
+  height: 100vh;
+  background: #020617;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    .card {
-      width: 100%;
-      max-width: 380px;
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(14px);
-      padding: 30px;
-      border-radius: 22px;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-    }
+/* OVERLAY */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    h2 { text-align: center; margin-bottom: 6px; }
+/* MODAL */
+.modal {
+  width: 90%;
+  max-width: 900px;
+  height: 520px;
+  display: flex;
+  background: #1e3a8a;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+}
 
-    .subtitle {
-      text-align: center;
-      font-size: 0.85rem;
-      color: #94a3b8;
-      margin-bottom: 22px;
-    }
+/* LEFT IMAGE */
+.left {
+  flex: 1;
+  background: url("https://images.unsplash.com/photo-1585504198199-20277593b94f?q=80&w=1200") center/cover no-repeat;
+  position: relative;
+}
 
-    input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
-      margin-bottom: 14px;
-      font-size: 0.9rem;
-    }
+.left::after {
+  content: "BUS TRACKING";
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 2px;
+}
 
-    .password-box {
-      position: relative;
-    }
+/* RIGHT FORM */
+.right {
+  flex: 1;
+  background: #1e40af;
+  padding: 50px 40px;
+  color: white;
+  position: relative;
+}
 
-    .toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.75rem;
-      cursor: pointer;
-      color: #38bdf8;
-    }
+.close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: white;
+  color: #1e40af;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #38bdf8;
-      border: none;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 8px;
-    }
+h2 {
+  margin-top: 30px;
+  font-size: 1.8rem;
+}
 
-    button:hover { background: #0ea5e9; }
+.subtitle {
+  color: #fde047;
+  margin: 14px 0 28px;
+}
 
-    .error {
-      margin-top: 12px;
-      text-align: center;
-      color: #f87171;
-      font-size: 0.85rem;
-    }
+input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 30px;
+  border: none;
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
 
-    .success {
-      color: #22c55e;
-      text-align: center;
-      margin-top: 10px;
-      font-size: 0.85rem;
-    }
+button.submit {
+  width: 100%;
+  padding: 14px;
+  background: #facc15;
+  border: none;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
 
-    .switch {
-      margin-top: 18px;
-      text-align: center;
-      font-size: 0.85rem;
-      color: #cbd5f5;
-      cursor: pointer;
-    }
+button.submit:hover {
+  background: #eab308;
+}
 
-    .switch span {
-      color: #38bdf8;
-      font-weight: 600;
-    }
-  </style>
+.toggle {
+  margin-top: 22px;
+  font-size: 0.85rem;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.toggle span {
+  color: #fde047;
+  font-weight: 600;
+}
+
+.error {
+  margin-top: 12px;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+</style>
 </head>
 
 <body>
 
-<div class="card">
-  <h2 id="title">Login</h2>
-  <p class="subtitle" id="subtitle">Sign in to continue</p>
+<div class="overlay">
+  <div class="modal">
 
-  <input id="email" type="email" placeholder="Email">
+    <!-- LEFT -->
+    <div class="left"></div>
 
-  <div class="password-box">
-    <input id="password" type="password" placeholder="Password">
-    <span class="toggle" onclick="togglePassword()">Show</span>
-  </div>
+    <!-- RIGHT -->
+    <div class="right">
+      <button class="close" onclick="window.location.href='/'">×</button>
 
-  <input id="otp" placeholder="OTP (only if verifying)" style="display:none">
+      <h2 id="title">Sign in</h2>
+      <p class="subtitle" id="subtitle">Avail super discounts, deals & rewards</p>
 
-  <button onclick="submitForm()">Login</button>
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Password" />
 
-  <div class="error" id="error"></div>
-  <div class="success" id="success"></div>
+      <button class="submit" onclick="submitForm()">Submit</button>
 
-  <div class="switch" onclick="toggleMode()">
-    Don’t have an account? <span>Sign up</span>
+      <div class="error" id="error"></div>
+
+      <div class="toggle" onclick="toggleMode()">
+        Don’t have an account? <span>Sign up</span>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
-  let mode = "login"; // login | signup | verify
+let isSignup = false;
 
-  function toggleMode() {
-    mode = mode === "login" ? "signup" : "login";
-    document.getElementById("title").innerText = mode === "login" ? "Login" : "Sign Up";
-    document.getElementById("subtitle").innerText =
-      mode === "login" ? "Sign in to continue" : "Create a new account";
+function toggleMode() {
+  isSignup = !isSignup;
 
-    document.querySelector("button").innerText =
-      mode === "login" ? "Login" : "Create Account";
+  document.getElementById("title").innerText = isSignup ? "Sign up" : "Sign in";
+  document.getElementById("subtitle").innerText =
+    isSignup
+      ? "Create a new account"
+      : "Avail super discounts, deals & rewards";
 
-    document.querySelector(".switch").innerHTML =
-      mode === "login"
-        ? "Don’t have an account? <span>Sign up</span>"
-        : "Already have an account? <span>Login</span>";
+  document.querySelector(".toggle").innerHTML =
+    isSignup
+      ? "Already have an account? <span>Sign in</span>"
+      : "Don’t have an account? <span>Sign up</span>";
 
-    document.getElementById("otp").style.display = "none";
-    clearMsg();
+  document.getElementById("error").innerText = "";
+}
+
+async function submitForm() {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const errorBox = document.getElementById("error");
+
+  errorBox.innerText = "";
+
+  const url = isSignup ? "/api/signup" : "/api/login";
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    errorBox.innerText = data.error || "Something went wrong";
+    return;
   }
 
-  function togglePassword() {
-    const p = document.getElementById("password");
-    p.type = p.type === "password" ? "text" : "password";
+  if (data.redirect) {
+    window.location.href = data.redirect;
+  } else {
+    errorBox.style.color = "#fde047";
+    errorBox.innerText = "OTP sent to your email. Verify to continue.";
   }
-
-  function clearMsg() {
-    document.getElementById("error").innerText = "";
-    document.getElementById("success").innerText = "";
-  }
-
-  async function submitForm() {
-    clearMsg();
-    const email = email.value.trim();
-    const password = password.value;
-    const otp = document.getElementById("otp").value;
-
-    try {
-      let res, data;
-
-      if (mode === "signup") {
-        res = await fetch("/api/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
-
-        data = await res.json();
-        if (!res.ok) throw data;
-
-        mode = "verify";
-        document.getElementById("otp").style.display = "block";
-        document.querySelector("button").innerText = "Verify OTP";
-        document.getElementById("success").innerText = "OTP sent to email";
-
-      } else if (mode === "verify") {
-        res = await fetch("/api/verify-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, otp })
-        });
-
-        data = await res.json();
-        if (!res.ok) throw data;
-
-        document.getElementById("success").innerText = "Email verified. Please login.";
-        mode = "login";
-        toggleMode();
-
-      } else {
-        res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
-
-        data = await res.json();
-        if (!res.ok) throw data;
-
-        window.location.href = "auth.html";
-      }
-    } catch (e) {
-      document.getElementById("error").innerText = e.error || "Something went wrong";
-    }
-  }
+}
 </script>
 
 </body>
