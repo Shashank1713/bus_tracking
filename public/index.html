@@ -9,36 +9,41 @@
 
 <style>
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
   font-family: Poppins, sans-serif;
 }
 
 body {
-  margin: 0;
-  background: #000;
-  color: #fff;
+  background: #020617;
+  color: white;
+  overflow-x: hidden;
 }
 
 /* ================= NAVBAR ================= */
 header {
-  background: #111;
-  padding: 16px 40px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  padding: 18px 50px;
+  background: rgba(0,0,0,0.6);
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 100;
 }
 
 .logo {
   font-size: 1.8rem;
   font-weight: 700;
   color: #facc15;
-  letter-spacing: 1px;
 }
 
 nav a {
-  color: #fff;
   margin: 0 16px;
   text-decoration: none;
+  color: white;
   font-size: 0.95rem;
 }
 
@@ -48,159 +53,186 @@ nav a:hover {
 
 .login-btn {
   background: #facc15;
-  color: #111;
-  padding: 8px 20px;
-  border-radius: 22px;
+  color: #020617;
+  padding: 8px 22px;
+  border-radius: 24px;
   font-weight: 600;
   text-decoration: none;
 }
 
 /* ================= HERO ================= */
 .hero {
-  position: relative;
-  overflow: hidden;
-  min-height: 78vh;
+  height: 100vh;
   background:
-    linear-gradient(to right, rgba(0,0,0,0.75), rgba(0,0,0,0.25)),
-    url("https://images.unsplash.com/photo-1586864384128-1b84e23a3341?auto=format&fit=crop&w=1600&q=80");
+    linear-gradient(to right, rgba(2,6,23,0.9), rgba(2,6,23,0.4)),
+    url("https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=1600&q=80");
   background-size: cover;
   background-position: center;
   display: flex;
   align-items: center;
-  padding: 60px 40px;
+  padding: 120px 60px 60px;
+  position: relative;
 }
 
 .hero-content {
-  max-width: 600px;
-  z-index: 2;
+  max-width: 650px;
 }
 
-.hero-content h1 {
-  font-size: 2.9rem;
-  font-weight: 700;
-  color: #facc15;
+.hero h1 {
+  font-size: 3.2rem;
   line-height: 1.3;
+  color: #facc15;
 }
 
-.hero-content h1 span {
-  text-decoration: underline;
+.hero h1 span {
+  color: white;
 }
 
-.hero-content p {
-  font-size: 1.1rem;
-  margin: 20px 0;
+.hero p {
+  margin: 22px 0;
+  font-size: 1.15rem;
+  color: #e5e7eb;
 }
 
-/* ================= OFFER ================= */
-.offer {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-top: 10px;
+.hero-buttons {
+  margin-top: 20px;
 }
 
-.offer span {
-  font-size: 1.4rem;
-  font-weight: 500;
+.hero-buttons a {
+  display: inline-block;
+  margin-right: 16px;
+  padding: 14px 32px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: #facc15;
+  color: #020617;
+}
+
+.secondary-btn {
+  border: 2px solid #facc15;
+  color: #facc15;
 }
 
 /* ================= MOVING BUS ================= */
-.moving-bus {
+.bus {
   position: absolute;
-  bottom: 40px;
-  left: -160px;
-  width: 150px;
-  animation: busMove 12s linear infinite;
-  z-index: 1;
-  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.7));
+  bottom: 60px;
+  left: -180px;
+  width: 160px;
+  animation: moveBus 14s linear infinite;
+  filter: drop-shadow(0 12px 18px rgba(0,0,0,0.7));
 }
 
-@keyframes busMove {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(120vw);
-  }
+@keyframes moveBus {
+  from { transform: translateX(0); }
+  to { transform: translateX(120vw); }
 }
 
-/* ================= SEARCH PANEL ================= */
-.search-panel {
-  background: #facc15;
-  padding: 26px 40px;
-}
-
-.trip-type {
-  margin-bottom: 16px;
-}
-
-.trip-type label {
-  margin-right: 20px;
-  font-size: 0.95rem;
-  color: #111;
-}
-
+/* ================= SEARCH ================= */
 .search-box {
+  background: #facc15;
+  padding: 30px;
+  border-radius: 18px;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+  margin: -60px auto 0;
+  width: 85%;
+  max-width: 1100px;
+  position: relative;
+  z-index: 10;
 }
 
 .search-box input {
   flex: 1;
-  min-width: 180px;
+  min-width: 200px;
   padding: 14px 18px;
   border-radius: 30px;
   border: none;
-  font-size: 0.95rem;
 }
 
 .search-box button {
-  background: #111;
+  background: #020617;
   color: #facc15;
-  padding: 14px 30px;
-  border-radius: 30px;
   border: none;
+  padding: 14px 36px;
+  border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.search-box button:hover {
-  background: #000;
+/* ================= FEATURES ================= */
+.features {
+  padding: 100px 50px;
+  text-align: center;
 }
 
-.quick-dates {
-  margin-top: 14px;
+.features h2 {
+  font-size: 2.4rem;
+  color: #facc15;
 }
 
-.quick-dates button {
-  background: transparent;
-  border: 2px solid #111;
-  padding: 6px 16px;
-  border-radius: 20px;
-  margin-right: 10px;
-  font-size: 0.85rem;
-  cursor: pointer;
+.cards {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-top: 40px;
+}
+
+.card {
+  width: 260px;
+  background: #020617;
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 26px;
+  border-radius: 18px;
+}
+
+.card h3 {
+  margin-bottom: 10px;
+}
+
+.card p {
+  font-size: 0.9rem;
+  color: #cbd5f5;
+}
+
+/* ================= FOOTER ================= */
+footer {
+  background: black;
+  padding: 24px;
+  text-align: center;
+  color: #facc15;
+  font-size: 0.9rem;
 }
 
 /* ================= RESPONSIVE ================= */
 @media (max-width: 900px) {
   header {
+    padding: 16px 24px;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
-  .hero-content h1 {
-    font-size: 2.2rem;
+  .hero {
+    padding: 120px 24px 60px;
   }
 
-  .search-panel {
-    padding: 20px;
+  .hero h1 {
+    font-size: 2.4rem;
   }
 
-  .moving-bus {
-    width: 110px;
-    bottom: 30px;
-    animation-duration: 10s;
+  .bus {
+    width: 120px;
+    bottom: 40px;
+  }
+
+  .search-box {
+    width: 92%;
   }
 }
 </style>
@@ -208,71 +240,65 @@ nav a:hover {
 
 <body>
 
-<!-- ================= NAVBAR ================= -->
+<!-- NAVBAR -->
 <header>
-  <div class="logo">BUS TRACKING</div>
+  <div class="logo">🚌 BUS TRACKING</div>
   <nav>
     <a href="#">Home</a>
-    <a href="#">About</a>
+    <a href="#">Routes</a>
     <a href="#">Contact</a>
-    <a href="#">Popular Destinations</a>
     <a class="login-btn" href="login.html">Sign in / Sign up</a>
   </nav>
 </header>
 
-<!-- ================= HERO ================= -->
+<!-- HERO -->
 <section class="hero">
-
   <div class="hero-content">
-    <h1>
-      Super Rides Begin with <br>
-      <span>Smart Bus Tracking</span>
-    </h1>
+    <h1>Smart <span>Bus Tracking</span><br>For Smarter Travel</h1>
+    <p>Track buses live, know exact arrival times, and travel stress-free.</p>
 
-    <p>Track buses live, check arrival time and plan your journey smartly.</p>
-
-    <div class="offer">
-      15% off <br>
-      <span>on all bookings</span>
+    <div class="hero-buttons">
+      <a href="login.html" class="primary-btn">Get Started</a>
+      <a href="#" class="secondary-btn">View Routes</a>
     </div>
   </div>
 
   <!-- MOVING BUS -->
-  <img
-    src="https://cdn-icons-png.flaticon.com/512/1068/1068631.png"
-    alt="Bus"
-    class="moving-bus"
-  />
-
+  <img src="https://cdn-icons-png.flaticon.com/512/1068/1068631.png" class="bus" alt="Bus">
 </section>
 
-<!-- ================= SEARCH ================= -->
-<section class="search-panel">
+<!-- SEARCH -->
+<div class="search-box">
+  <input placeholder="From">
+  <input placeholder="To">
+  <input type="date">
+  <button onclick="location.href='login.html'">Search Buses</button>
+</div>
 
-  <div class="trip-type">
-    <label><input type="radio" name="trip" checked> One way</label>
-    <label><input type="radio" name="trip"> Round Trip</label>
+<!-- FEATURES -->
+<section class="features">
+  <h2>Why Choose Us?</h2>
+
+  <div class="cards">
+    <div class="card">
+      <h3>📍 Live Tracking</h3>
+      <p>See bus movement in real time on map.</p>
+    </div>
+    <div class="card">
+      <h3>⏱ Accurate ETA</h3>
+      <p>Know when your bus will arrive.</p>
+    </div>
+    <div class="card">
+      <h3>🚌 Multiple Buses</h3>
+      <p>Track multiple buses at once.</p>
+    </div>
   </div>
-
-  <div class="search-box">
-    <input placeholder="Source">
-    <input placeholder="Destination">
-    <input type="date">
-    <button onclick="goLogin()">Search</button>
-  </div>
-
-  <div class="quick-dates">
-    <button>Today</button>
-    <button>Tomorrow</button>
-  </div>
-
 </section>
 
-<script>
-function goLogin() {
-  window.location.href = "login.html";
-}
-</script>
+<!-- FOOTER -->
+<footer>
+  © 2026 Bus Tracking System | Final Year Project
+</footer>
 
 </body>
 </html>
