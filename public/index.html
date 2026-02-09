@@ -57,9 +57,11 @@ nav a:hover {
 
 /* ================= HERO ================= */
 .hero {
+  position: relative;
+  overflow: hidden;
   min-height: 78vh;
   background:
-    linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.25)),
+    linear-gradient(to right, rgba(0,0,0,0.75), rgba(0,0,0,0.25)),
     url("https://images.unsplash.com/photo-1586864384128-1b84e23a3341?auto=format&fit=crop&w=1600&q=80");
   background-size: cover;
   background-position: center;
@@ -70,6 +72,7 @@ nav a:hover {
 
 .hero-content {
   max-width: 600px;
+  z-index: 2;
 }
 
 .hero-content h1 {
@@ -98,6 +101,26 @@ nav a:hover {
 .offer span {
   font-size: 1.4rem;
   font-weight: 500;
+}
+
+/* ================= MOVING BUS ================= */
+.moving-bus {
+  position: absolute;
+  bottom: 40px;
+  left: -160px;
+  width: 150px;
+  animation: busMove 12s linear infinite;
+  z-index: 1;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.7));
+}
+
+@keyframes busMove {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(120vw);
+  }
 }
 
 /* ================= SEARCH PANEL ================= */
@@ -173,6 +196,12 @@ nav a:hover {
   .search-panel {
     padding: 20px;
   }
+
+  .moving-bus {
+    width: 110px;
+    bottom: 30px;
+    animation-duration: 10s;
+  }
 }
 </style>
 </head>
@@ -186,13 +215,14 @@ nav a:hover {
     <a href="#">Home</a>
     <a href="#">About</a>
     <a href="#">Contact</a>
-    <a href="#">Popular Routes</a>
+    <a href="#">Popular Destinations</a>
     <a class="login-btn" href="login.html">Sign in / Sign up</a>
   </nav>
 </header>
 
 <!-- ================= HERO ================= -->
 <section class="hero">
+
   <div class="hero-content">
     <h1>
       Super Rides Begin with <br>
@@ -206,6 +236,14 @@ nav a:hover {
       <span>on all bookings</span>
     </div>
   </div>
+
+  <!-- MOVING BUS -->
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/1068/1068631.png"
+    alt="Bus"
+    class="moving-bus"
+  />
+
 </section>
 
 <!-- ================= SEARCH ================= -->
