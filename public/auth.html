@@ -140,13 +140,21 @@
 </div>
 
 <script>
+  // OPTIONAL: client-side guard (backend is main security)
+  // If user opens directly after logout, redirect
+  fetch("/api/session-check")
+    .then(res => {
+      if (!res.ok) window.location.href = "login.html";
+    })
+    .catch(() => window.location.href = "login.html");
+
   function go(page) {
     window.location.href = page;
   }
 
   async function logout() {
     try {
-      await fetch("/api/logout"); // GET (matches backend)
+      await fetch("/api/logout"); // GET
     } catch (e) {}
     window.location.href = "login.html";
   }

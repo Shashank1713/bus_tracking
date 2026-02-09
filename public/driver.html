@@ -5,7 +5,14 @@
   <title>Driver | Bus Tracking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
+    * {
+      box-sizing: border-box;
+      font-family: Poppins, sans-serif;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -13,28 +20,49 @@
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, #020617, #0f172a);
-      font-family: Arial, sans-serif;
       color: white;
     }
 
+    /* LOGOUT */
+    .logout-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      z-index: 10;
+    }
+
+    .logout-btn:hover {
+      background: #dc2626;
+    }
+
     .card {
-      width: 340px;
+      width: 360px;
       background: rgba(255,255,255,0.08);
       backdrop-filter: blur(14px);
-      padding: 26px;
-      border-radius: 18px;
+      padding: 28px;
+      border-radius: 20px;
       text-align: center;
       box-shadow: 0 30px 60px rgba(0,0,0,0.6);
     }
 
-    h2 { margin-bottom: 14px; }
+    h2 {
+      margin-bottom: 18px;
+    }
 
     input {
       width: 100%;
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       border: none;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       font-size: 0.9rem;
     }
 
@@ -43,19 +71,26 @@
       padding: 12px;
       margin-top: 8px;
       border: none;
-      border-radius: 8px;
-      font-weight: bold;
+      border-radius: 10px;
+      font-weight: 600;
       cursor: pointer;
     }
 
     .start { background: #22c55e; }
     .stop { background: #ef4444; }
 
-    .start:disabled { background: #14532d; cursor: not-allowed; }
-    .stop:disabled { background: #7f1d1d; cursor: not-allowed; }
+    .start:disabled {
+      background: #14532d;
+      cursor: not-allowed;
+    }
+
+    .stop:disabled {
+      background: #7f1d1d;
+      cursor: not-allowed;
+    }
 
     .status {
-      margin-top: 14px;
+      margin-top: 16px;
       font-size: 0.85rem;
       color: #cbd5f5;
     }
@@ -64,26 +99,43 @@
 
 <body>
 
+<!-- LOGOUT -->
+<button class="logout-btn" onclick="logout()">Logout</button>
+
 <div class="card">
   <h2>🚍 Driver Panel</h2>
 
   <input id="busId" placeholder="Enter Bus ID (e.g. BUS-101)">
 
-  <button id="startBtn" class="start" onclick="startSharing()">Start Sharing</button>
-  <button id="stopBtn" class="stop" onclick="stopSharing()" disabled>Stop Sharing</button>
+  <button id="startBtn" class="start" onclick="startSharing()">
+    Start Sharing
+  </button>
 
-  <div class="status" id="status">Not sharing location</div>
+  <button id="stopBtn" class="stop" onclick="stopSharing()" disabled>
+    Stop Sharing
+  </button>
+
+  <div class="status" id="status">
+    🔴 Not sharing location
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
+  /* ---------------- SESSION CHECK ---------------- */
+  fetch("/api/session-check")
+    .then(res => {
+      if (!res.ok) window.location.href = "login.html";
+    })
+    .catch(() => window.location.href = "login.html");
+
   const socket = io();
   let watchId = null;
   let currentBusId = null;
 
   function startSharing() {
-    const busIdInput = document.getElementById("busId");
-    const busId = busIdInput.value.trim();
+    const busInput = document.getElementById("busId");
+    const busId = busInput.value.trim();
 
     if (!busId) {
       alert("Please enter Bus ID");
@@ -91,26 +143,28 @@
     }
 
     if (!navigator.geolocation) {
-      alert("Geolocation not supported");
+      alert("Geolocation not supported in this browser");
       return;
     }
 
     currentBusId = busId;
-    busIdInput.disabled = true;
+    busInput.disabled = true;
 
-    document.getElementById("status").innerText = "📡 Requesting location permission...";
+    document.getElementById("status").innerText =
+      "📡 Requesting location permission...";
 
     watchId = navigator.geolocation.watchPosition(
-      position => {
+      pos => {
         socket.emit("driverLocation", {
           busId: currentBusId,
-          lat: position.coords.latitude,
-          lon: position.coords.longitude
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude
         });
 
-        document.getElementById("status").innerText = "🟢 Sharing live location";
+        document.getElementById("status").innerText =
+          "🟢 Sharing live location";
       },
-      error => {
+      err => {
         document.getElementById("status").innerText =
           "❌ Location permission denied";
         stopSharing();
@@ -130,6 +184,7 @@
 
     if (currentBusId) {
       socket.emit("stopSharing", { busId: currentBusId });
+      currentBusId = null;
     }
 
     document.getElementById("busId").disabled = false;
@@ -138,6 +193,13 @@
 
     document.getElementById("status").innerText =
       "🔴 Location sharing stopped";
+  }
+
+  async function logout() {
+    try {
+      await fetch("/api/logout");
+    } catch (e) {}
+    window.location.href = "login.html";
   }
 </script>
 

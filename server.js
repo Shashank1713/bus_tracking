@@ -4,6 +4,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const http = require("http");
+const axios = require("axios");
 const { Server } = require("socket.io");
 const User = require("./models/User");
 
@@ -20,12 +21,12 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// ROOT FIX (IMPORTANT FOR RENDER)
+/* ROOT */
 app.get("/", (req, res) => {
   res.redirect("/login.html");
 });
 
-// MONGODB
+/* DB */
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("✅ MongoDB connected"))
   .catch(err => console.log("❌ MongoDB error", err));
@@ -36,8 +37,9 @@ mongoose.connect(process.env.MONGO_URL)
 app.post("/api/send-otp", async (req, res) => {
   const { mobile } = req.body;
 
-  if (!/^[6-9]\d{9}$/.test(mobile))
+  if (!/^[6-9]\d{9}$/.test(mobile)) {
     return res.status(400).json({ error: "Invalid mobile number" });
+  }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -48,10 +50,27 @@ app.post("/api/send-otp", async (req, res) => {
   user.otpExpires = Date.now() + 5 * 60 * 1000;
   await user.save();
 
-  // DEMO MODE (OTP IN CONSOLE)
-  console.log(`📱 OTP for ${mobile}: ${otp}`);
+  try {
+    await axios.post(
+      "https://www.fast2sms.com/dev/bulkV2",
+      {
+        route: "otp",
+        variables_values: otp,
+        numbers: mobile
+      },
+      {
+        headers: {
+          authorization: process.env.FAST2SMS_API_KEY,
+          "Content-Type": "application/json"
+        }
+      }
+    );
 
-  res.json({ message: "OTP sent to mobile" });
+    res.json({ message: "OTP sent successfully" });
+  } catch (err) {
+    console.error("Fast2SMS Error:", err.response?.data || err.message);
+    res.status(500).json({ error: "OTP sending failed" });
+  }
 });
 
 // VERIFY OTP
@@ -60,8 +79,9 @@ app.post("/api/verify-otp", async (req, res) => {
 
   const user = await User.findOne({ mobile });
 
-  if (!user || user.otp !== otp || user.otpExpires < Date.now())
+  if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
     return res.status(400).json({ error: "Invalid OTP" });
+  }
 
   user.isVerified = true;
   user.otp = null;
@@ -79,13 +99,13 @@ app.get("/api/logout", (req, res) => {
   });
 });
 
-/* ---------- SOCKET.IO BUS TRACKING ---------- */
+/* ---------- BUS TRACKING ---------- */
 
 const buses = {};
 
 io.on("connection", socket => {
   socket.on("driverLocation", ({ busId, lat, lon }) => {
-    buses[busId] = { lat, lon };
+    buses[busId] = { lat, lon, updatedAt: Date.now() };
     io.emit("fleetUpdate", buses);
   });
 
