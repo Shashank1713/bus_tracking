@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Bus Tracking System</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -11,134 +11,185 @@
   <style>
     * {
       box-sizing: border-box;
-      font-family: "Poppins", sans-serif;
+      font-family: Poppins, sans-serif;
     }
 
     body {
       margin: 0;
-      background: #020617;
-      color: white;
+      background: #ffffff;
+      color: #111;
     }
 
-    /* NAVBAR */
+    /* ================= NAVBAR ================= */
     header {
+      background: #0f172a;
+      color: #facc15;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 50px;
-      background: #020617;
-      border-bottom: 1px solid #1e293b;
+      padding: 14px 30px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
-    header h2 {
+    header h1 {
       margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: 1px;
+    }
+
+    nav a {
+      color: #fff;
+      margin: 0 14px;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+
+    nav a:hover {
       color: #facc15;
     }
 
-    header a {
-      text-decoration: none;
+    .login-btn {
       background: #facc15;
-      color: #020617;
-      padding: 10px 22px;
+      color: #111;
+      padding: 8px 18px;
       border-radius: 20px;
       font-weight: 600;
+      text-decoration: none;
     }
 
-    header a:hover {
-      background: #eab308;
-    }
-
-    /* HERO */
+    /* ================= HERO ================= */
     .hero {
-      min-height: calc(100vh - 80px);
+      min-height: 75vh;
+      background:
+        linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+        url("https://images.unsplash.com/photo-1586864384128-1b84e23a3341?auto=format&fit=crop&w=1600&q=80");
+      background-size: cover;
+      background-position: center;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 60px;
-      gap: 40px;
+      padding: 40px;
+      color: white;
     }
 
-    .hero-text {
-      max-width: 520px;
+    .hero-content {
+      max-width: 580px;
     }
 
-    .hero-text h1 {
-      font-size: 3rem;
-      margin-bottom: 14px;
+    .hero-content h2 {
+      font-size: 2.8rem;
+      margin-bottom: 12px;
+      color: #facc15;
     }
 
-    .hero-text p {
-      color: #cbd5f5;
-      font-size: 1.05rem;
-      margin-bottom: 28px;
+    .hero-content p {
+      font-size: 1.15rem;
+      margin-bottom: 24px;
+      line-height: 1.6;
     }
 
-    .hero-text button {
-      padding: 14px 30px;
-      font-size: 1rem;
-      border-radius: 30px;
-      border: none;
+    /* ================= SEARCH ================= */
+    .search-box {
       background: #facc15;
-      color: #020617;
-      font-weight: 700;
+      padding: 22px;
+      border-radius: 16px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+    }
+
+    .search-box input {
+      flex: 1;
+      min-width: 160px;
+      padding: 12px 16px;
+      border-radius: 20px;
+      border: none;
+      outline: none;
+      font-size: 0.95rem;
+    }
+
+    .search-box button {
+      background: #0f172a;
+      color: #facc15;
+      border: none;
+      padding: 12px 26px;
+      border-radius: 20px;
+      font-weight: 600;
       cursor: pointer;
     }
 
-    .hero-text button:hover {
-      background: #eab308;
-    }
-
-    /* BUS IMAGE */
-    .hero-image {
-      width: 520px;
-      max-width: 100%;
-      border-radius: 26px;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.6);
-      animation: float 4s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0); }
-    }
-
-    /* FEATURES */
-    .features {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      padding: 60px 40px;
+    .search-box button:hover {
       background: #020617;
     }
 
-    .feature {
-      background: rgba(255,255,255,0.06);
-      padding: 26px;
-      border-radius: 22px;
-      width: 260px;
+    /* ================= FEATURES ================= */
+    .section {
+      padding: 70px 30px;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
     }
 
-    .feature h3 {
+    .section h3 {
+      font-size: 2.2rem;
       margin-bottom: 10px;
+      color: #1e3a8a;
     }
 
-    .feature p {
+    .section p {
+      color: #475569;
+    }
+
+    .cards {
+      display: flex;
+      justify-content: center;
+      gap: 22px;
+      flex-wrap: wrap;
+      margin-top: 36px;
+    }
+
+    .card {
+      width: 260px;
+      background: #f8fafc;
+      padding: 26px;
+      border-radius: 18px;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+    }
+
+    .card h4 {
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+    }
+
+    .card p {
       font-size: 0.9rem;
-      color: #cbd5f5;
+      color: #475569;
     }
 
-    /* RESPONSIVE */
-    @media (max-width: 900px) {
-      .hero {
-        flex-direction: column;
-        text-align: center;
+    /* ================= FOOTER ================= */
+    footer {
+      background: #0f172a;
+      color: #facc15;
+      text-align: center;
+      padding: 22px;
+      margin-top: 40px;
+      font-size: 0.9rem;
+    }
+
+    /* ================= RESPONSIVE ================= */
+    @media (max-width: 720px) {
+      .hero-content h2 {
+        font-size: 2.1rem;
       }
 
-      .hero-text h1 {
-        font-size: 2.2rem;
+      header {
+        flex-direction: column;
+        gap: 10px;
       }
     }
   </style>
@@ -146,48 +197,68 @@
 
 <body>
 
-<!-- NAVBAR -->
+<!-- ================= HEADER ================= -->
 <header>
-  <h2>🚌 Bus Tracking</h2>
-  <a href="login.html">Sign in / Sign up</a>
+  <h1>🚌 BUS TRACKING</h1>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">Routes</a>
+    <a href="#">Contact</a>
+    <a class="login-btn" href="login.html">Sign in / Sign up</a>
+  </nav>
 </header>
 
-<!-- HERO -->
+<!-- ================= HERO ================= -->
 <section class="hero">
-  <div class="hero-text">
-    <h1>Live Bus Tracking System</h1>
+  <div class="hero-content">
+    <h2>Smart Bus Travel Starts Here</h2>
     <p>
-      Track buses in real time, view routes, arrival times,
-      and monitor fleets just like VRL Travels.
+      Track live buses, check accurate arrival times,
+      and plan your journey with confidence.
     </p>
-    <button onclick="location.href='login.html'">Get Started</button>
-  </div>
 
-  <!-- BUS IMAGE (REPLACED LAPTOP IMAGE HERE) -->
-  <img
-    src="https://images.unsplash.com/photo-1606925797300-0b35e9d1794c"
-    alt="Bus"
-    class="hero-image"
-  />
-</section>
-
-<!-- FEATURES -->
-<section class="features">
-  <div class="feature">
-    <h3>🛰 Live Tracking</h3>
-    <p>See buses moving live on the map.</p>
-  </div>
-
-  <div class="feature">
-    <h3>⏱ Arrival Time</h3>
-    <p>Estimated arrival & destination time.</p>
-  </div>
-
-  <div class="feature">
-    <h3>🧑‍💼 Admin Control</h3>
-    <p>Monitor all buses from one dashboard.</p>
+    <div class="search-box">
+      <input placeholder="Source">
+      <input placeholder="Destination">
+      <input type="date">
+      <button onclick="goLogin()">Search</button>
+    </div>
   </div>
 </section>
+
+<!-- ================= FEATURES ================= -->
+<section class="section">
+  <h3>Why Choose Our System?</h3>
+  <p>Built for students, commuters, and transport admins</p>
+
+  <div class="cards">
+    <div class="card">
+      <h4>📍 Live Bus Tracking</h4>
+      <p>See buses move live on the map with GPS updates.</p>
+    </div>
+
+    <div class="card">
+      <h4>⏱ Accurate Arrival Time</h4>
+      <p>Know exactly when your bus reaches your stop.</p>
+    </div>
+
+    <div class="card">
+      <h4>🛣 Smart Routes</h4>
+      <p>Optimized routes and scheduled departures.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  © 2026 Bus Tracking System | Final Year Project
+</footer>
+
+<script>
+  function goLogin() {
+    window.location.href = "login.html";
+  }
+</script>
 
 </body>
 </html>
