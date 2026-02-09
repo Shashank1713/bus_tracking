@@ -39,10 +39,14 @@
       font-size: 0.9rem;
     }
 
+    nav a:hover {
+      text-decoration: underline;
+    }
+
     .login-btn {
       background: #facc15;
       color: #111;
-      padding: 8px 16px;
+      padding: 8px 18px;
       border-radius: 20px;
       font-weight: 600;
       text-decoration: none;
@@ -50,8 +54,8 @@
 
     /* HERO */
     .hero {
-      background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
-      url("https://images.unsplash.com/photo-1603302576837-37561b2e2302") center/cover;
+      background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+      url("https://images.unsplash.com/photo-1606925797300-0b35e9d1794c") center/cover no-repeat;
       min-height: 70vh;
       display: flex;
       align-items: center;
@@ -60,7 +64,7 @@
     }
 
     .hero-content {
-      max-width: 550px;
+      max-width: 560px;
     }
 
     .hero-content h2 {
@@ -90,16 +94,21 @@
       border-radius: 20px;
       border: none;
       min-width: 150px;
+      outline: none;
     }
 
     .search-box button {
       background: #111;
       color: #facc15;
       border: none;
-      padding: 12px 24px;
+      padding: 12px 26px;
       border-radius: 20px;
       font-weight: 600;
       cursor: pointer;
+    }
+
+    .search-box button:hover {
+      background: #000;
     }
 
     /* SECTION */
@@ -201,8 +210,8 @@
 
 <script>
   function search() {
-    // Later connect this to real route + ETA logic
-    alert("This will show available buses & ETA");
+    // Redirect to login before showing buses (real apps do this)
+    window.location.href = "login.html";
   }
 </script>
 
