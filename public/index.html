@@ -27,7 +27,7 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 18px 50px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.7);
   position: fixed;
   width: 100%;
   top: 0;
@@ -94,10 +94,6 @@ nav a:hover {
   color: #e5e7eb;
 }
 
-.hero-buttons {
-  margin-top: 20px;
-}
-
 .hero-buttons a {
   display: inline-block;
   margin-right: 16px;
@@ -124,7 +120,6 @@ nav a:hover {
   left: -180px;
   width: 160px;
   animation: moveBus 14s linear infinite;
-  filter: drop-shadow(0 12px 18px rgba(0,0,0,0.7));
 }
 
 @keyframes moveBus {
@@ -192,10 +187,6 @@ nav a:hover {
   border-radius: 18px;
 }
 
-.card h3 {
-  margin-bottom: 10px;
-}
-
 .card p {
   font-size: 0.9rem;
   color: #cbd5f5;
@@ -245,7 +236,7 @@ footer {
   <div class="logo">🚌 BUS TRACKING</div>
   <nav>
     <a href="#">Home</a>
-    <a href="#">Best Destination</a>
+    <a href="auth.html">Best Destination</a>
     <a href="#">Contact</a>
     <a class="login-btn" href="login.html">Sign in / Sign up</a>
   </nav>
@@ -259,12 +250,14 @@ footer {
 
     <div class="hero-buttons">
       <a href="login.html" class="primary-btn">Get Started</a>
-      <a href="#" class="secondary-btn">View Routes</a>
+      <a href="auth.html" class="secondary-btn">Best Destination</a>
     </div>
   </div>
 
   <!-- MOVING BUS -->
-  <img src="https://cdn-icons-png.flaticon.com/512/1068/1068631.png" class="bus" alt="Bus">
+  <img src="https://cdn-icons-png.flaticon.com/512/1068/1068631.png"
+       class="bus"
+       alt="Bus">
 </section>
 
 <!-- SEARCH -->
@@ -280,21 +273,15 @@ footer {
   <h2>Why Choose Us?</h2>
 
   <div class="cards">
-    <div class="card">
-      <h3>📍 Live Tracking</h3>
-      <p>See bus movement in real time on map.</p>
-    </div>
-    <div class="card">
-      <h3>⏱ Accurate ETA</h3>
-      <p>Know when your bus will arrive.</p>
-    </div>
-    <div class="card">
-      <h3>🚌 Multiple Buses</h3>
-      <p>Track multiple buses at once.</p>
-    </div>
+    <div class="card">📍 Live Bus Tracking</div>
+    <div class="card">⏱ Accurate Arrival Time</div>
+    <div class="card">🚌 Multiple Buses</div>
   </div>
 </section>
 
+<footer>
+  © 2026 Bus Tracking System
+</footer>
 
 </body>
 </html>
