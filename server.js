@@ -1,86 +1,92 @@
-require("dotenv").config({ quiet: true });
+require("dotenv").config();
 
 const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const http = require("http");
-const axios = require("axios");
 const { Server } = require("socket.io");
+
 const User = require("./models/User");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// ---------------- MIDDLEWARE ----------------
 app.use(express.json());
 app.use(express.static("public"));
 
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false
+  })
+);
 
-/* ROOT */
+// ---------------- DB ----------------
+mongoose
+  .connect(process.env.MONGO_URL)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch(err => console.log("❌ MongoDB error", err));
+
+// ---------------- ROOT ----------------
 app.get("/", (req, res) => {
   res.redirect("/login.html");
 });
 
-/* DB */
-mongoose.connect(process.env.MONGO_URL)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.log("❌ MongoDB error", err));
+// ---------------- SESSION CHECK ----------------
+app.get("/api/session-check", (req, res) => {
+  if (req.session.userId) return res.sendStatus(200);
+  res.sendStatus(401);
+});
 
-/* ---------- MOBILE OTP AUTH ---------- */
-
-// SEND OTP
+// ---------------- SEND OTP (DEMO MODE) ----------------
 app.post("/api/send-otp", async (req, res) => {
-  const { mobile } = req.body;
+  let { mobile } = req.body;
 
-  if (!/^[6-9]\d{9}$/.test(mobile)) {
+  const mobileRegex = /^(\+91)?[6-9]\d{9}$/;
+  if (!mobileRegex.test(mobile)) {
     return res.status(400).json({ error: "Invalid mobile number" });
+  }
+
+  if (!mobile.startsWith("+91")) {
+    mobile = "+91" + mobile;
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   let user = await User.findOne({ mobile });
-  if (!user) user = await User.create({ mobile });
+  if (!user) user = new User({ mobile });
 
   user.otp = otp;
   user.otpExpires = Date.now() + 5 * 60 * 1000;
+  user.isVerified = false;
   await user.save();
 
-  try {
-    await axios.post(
-      "https://www.fast2sms.com/dev/bulkV2",
-      {
-        route: "otp",
-        variables_values: otp,
-        numbers: mobile
-      },
-      {
-        headers: {
-          authorization: process.env.FAST2SMS_API_KEY,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+  // 🔥 DEMO OTP (NO SMS)
+  console.log("✅ DEMO OTP:", otp, "for", mobile);
 
-    res.json({ message: "OTP sent successfully" });
-  } catch (err) {
-    console.error("Fast2SMS Error:", err.response?.data || err.message);
-    res.status(500).json({ error: "OTP sending failed" });
-  }
+  res.json({ message: "OTP sent successfully (demo)" });
 });
 
-// VERIFY OTP
+// ---------------- VERIFY OTP ----------------
 app.post("/api/verify-otp", async (req, res) => {
-  const { mobile, otp } = req.body;
+  let { mobile, otp } = req.body;
+
+  if (!mobile.startsWith("+91")) {
+    mobile = "+91" + mobile;
+  }
 
   const user = await User.findOne({ mobile });
 
-  if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
-    return res.status(400).json({ error: "Invalid OTP" });
+  if (
+    !user ||
+    user.otp !== otp ||
+    !user.otpExpires ||
+    user.otpExpires < Date.now()
+  ) {
+    return res.status(400).json({ error: "Invalid or expired OTP" });
   }
 
   user.isVerified = true;
@@ -89,18 +95,18 @@ app.post("/api/verify-otp", async (req, res) => {
   await user.save();
 
   req.session.userId = user._id;
+
   res.json({ redirect: "/auth.html" });
 });
 
-// LOGOUT
+// ---------------- LOGOUT ----------------
 app.get("/api/logout", (req, res) => {
   req.session.destroy(() => {
     res.json({ success: true });
   });
 });
 
-/* ---------- BUS TRACKING ---------- */
-
+// ---------------- SOCKET BUS TRACKING ----------------
 const buses = {};
 
 io.on("connection", socket => {
@@ -115,6 +121,7 @@ io.on("connection", socket => {
   });
 });
 
+// ---------------- START ----------------
 server.listen(process.env.PORT, () => {
-  console.log("🚀 Server running");
+  console.log(`🚀 Server running on port ${process.env.PORT}`);
 });
