@@ -519,6 +519,15 @@ app.get("/api/openapi.json", (req, res) => {
   res.json(swaggerSpec);
 });
 
+app.get("/api/config/auth-capabilities", (req, res) => {
+  return res.json({
+    emailOtpEnabled: gmailEnabled,
+    smsOtpEnabled: Boolean(process.env.FAST2SMS_API_KEY),
+    firebaseEnabled,
+    otpProvider: OTP_PROVIDER
+  });
+});
+
 // ---------------- EMAIL OTP ----------------
 app.post("/api/auth/email/send-otp", async (req, res) => {
   try {
@@ -1673,4 +1682,10 @@ io.on("connection", socket => {
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
   console.log(`🚀 Server running on port ${port} | OTP provider: ${OTP_PROVIDER}`);
+  if (!gmailEnabled) {
+    console.warn("⚠️ Email OTP is disabled: GMAIL_USER/GMAIL_APP_PASSWORD missing.");
+  }
+  if (!process.env.FAST2SMS_API_KEY) {
+    console.warn("⚠️ SMS OTP is disabled: FAST2SMS_API_KEY missing.");
+  }
 });
