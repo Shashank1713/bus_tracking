@@ -10,16 +10,20 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: NODE_ENV
+        value: production
       - key: MONGO_URL
         sync: false
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       - key: OTP_PROVIDER
         value: fast2sms
       - key: OTP_TTL_MINUTES
         value: 5
       - key: OTP_FALLBACK_DEMO
         value: false
+      - key: PUBLIC_BASE_URL
+        sync: false
       - key: GMAIL_USER
         sync: false
       - key: GMAIL_APP_PASSWORD
