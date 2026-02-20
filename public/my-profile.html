@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #ececec;
+      --text: #262a30;
+      --line: #cfcfcf;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Manrope, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .menu-card {
+      width: min(430px, 100%);
+      background: var(--bg);
+      border-radius: 0 0 22px 22px;
+      padding: 34px 38px 30px;
+      box-shadow: 0 8px 24px rgba(35, 42, 56, 0.12);
+    }
+
+    .menu {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item,
+    .signout {
+      min-height: 58px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: clamp(1.95rem, 4.6vw, 2.6rem);
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .item:hover,
+    .signout:hover {
+      opacity: 0.8;
+    }
+
+    .divider {
+      border: none;
+      border-top: 2px solid var(--line);
+      margin: 8px 0 10px;
+    }
+
+    .identity {
+      margin-bottom: 18px;
+      color: #5a6070;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <main class="menu-card">
+    <p id="identity" class="identity"></p>
+
+    <nav class="menu" aria-label="Profile menu">
+      <a class="item" href="my-account.html">My Profile</a>
+      <a class="item" href="my-bookings.html">My Bookings</a>
+      <a class="item" href="wallet.html">Wallet</a>
+
+      <hr class="divider" />
+
+      <a class="item" href="live-tracking.html?busId=BUS-101&source=Bangalore&destination=Hyderabad&date=2026-02-20">Track My Bus</a>
+      <a class="item" href="feedback.html">Feedback</a>
+      <a class="item" href="popular-destinations.html">Popular Destinations</a>
+      <a class="item" href="about.html">About Us</a>
+
+      <hr class="divider" />
+
+      <button id="signout" class="signout" type="button">Sign Out</button>
+    </nav>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("appToken");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    async function loadIdentity() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("appToken");
+          localStorage.removeItem("mobile");
+          localStorage.removeItem("identity");
+          window.location.href = "login.html";
+          return;
+        }
+
+        const user = await response.json();
+        const identity = user.email || user.mobile || "Friendly User";
+        document.getElementById("identity").textContent = identity;
+      } catch (error) {
+        document.getElementById("identity").textContent = "Friendly User";
+      }
+    }
+
+    document.getElementById("signout").addEventListener("click", async () => {
+      localStorage.removeItem("appToken");
+      localStorage.removeItem("mobile");
+      localStorage.removeItem("identity");
+      try {
+        await fetch("/api/logout");
+      } catch (error) {}
+      window.location.href = "login.html";
+    });
+
+    loadIdentity();
+  </script>
+</body>
+</html>

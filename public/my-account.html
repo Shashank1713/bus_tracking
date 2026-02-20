@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #eef2f8;
+      --card: #ffffff;
+      --line: #d7dfec;
+      --text: #1a2238;
+      --muted: #68738a;
+      --blue: #2f43a6;
+      --yellow: #f5cf0d;
+      --danger: #b33d3d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Manrope, sans-serif; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    .card {
+      width: min(560px, 100%);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 10px 24px rgba(25, 39, 74, 0.08);
+    }
+
+    h1 {
+      color: var(--blue);
+      margin-bottom: 12px;
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+
+    .line {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: #fafcff;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .value {
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 42px;
+      border: none;
+      border-radius: 999px;
+      padding: 0 16px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn.home { background: #e7edff; color: var(--blue); }
+    .btn.trips { background: var(--yellow); color: #1b2438; }
+    .btn.logout { background: #ffe7e7; color: var(--danger); }
+
+    .msg {
+      min-height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      color: #51607c;
+      padding: 8px 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>My Account</h1>
+    <div id="message" class="msg">Loading account details...</div>
+
+    <div class="line">
+      <p class="label">Email</p>
+      <p id="email" class="value">-</p>
+    </div>
+
+    <div class="line">
+      <p class="label">Mobile</p>
+      <p id="mobile" class="value">-</p>
+    </div>
+
+    <div class="line">
+      <p class="label">Role</p>
+      <p id="role" class="value">-</p>
+    </div>
+
+    <div class="row">
+      <a class="btn home" href="index.html">Home</a>
+      <a class="btn trips" href="my-bookings.html">My Bookings</a>
+      <a class="btn trips" href="wallet.html">Wallet</a>
+      <button id="logout" class="btn logout" type="button">Logout</button>
+    </div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("appToken");
+    const messageEl = document.getElementById("message");
+
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    async function loadAccount() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("appToken");
+          localStorage.removeItem("mobile");
+          localStorage.removeItem("identity");
+          window.location.href = "login.html";
+          return;
+        }
+
+        const user = await response.json();
+        document.getElementById("email").textContent = user.email || "Not provided";
+        document.getElementById("mobile").textContent = user.mobile || "Not provided";
+        document.getElementById("role").textContent = user.role || "user";
+        messageEl.textContent = "Account loaded.";
+      } catch (error) {
+        messageEl.textContent = "Unable to load account details.";
+      }
+    }
+
+    document.getElementById("logout").addEventListener("click", async () => {
+      localStorage.removeItem("appToken");
+      localStorage.removeItem("mobile");
+      localStorage.removeItem("identity");
+      try {
+        await fetch("/api/logout");
+      } catch (error) {}
+      window.location.href = "login.html";
+    });
+
+    loadAccount();
+  </script>
+</body>
+</html>

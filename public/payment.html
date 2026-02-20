@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body{margin:0;background:#eef2f8;font-family:Manrope,sans-serif;color:#1a2238;padding:16px}
+    .wrap{width:min(700px,100%);margin:0 auto;display:grid;gap:12px}
+    .card{background:#fff;border:1px solid #d7dfec;border-radius:16px;padding:14px;box-shadow:0 8px 22px rgba(25,39,74,.08)}
+    h1{margin:0 0 8px;color:#2f43a6}
+    .row{display:flex;justify-content:space-between;gap:8px;margin:6px 0;color:#4f5d78;font-weight:700}
+    .total{font-size:1.2rem;color:#1a2238;font-weight:900}
+    .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn{min-height:42px;border:none;border-radius:999px;padding:0 16px;font-weight:800;cursor:pointer}
+    .btn.back{background:#e7edff;color:#2f43a6}
+    .btn.pay{background:#f5cf0d;color:#1b2438}
+    .msg{min-height:24px;color:#2f43a6;font-weight:700}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Payment</h1>
+      <div id="summary"></div>
+      <p id="msg" class="msg"></p>
+      <div class="btns">
+        <button class="btn back" type="button" onclick="window.history.back()">Back</button>
+        <button id="pay" class="btn pay" type="button">Pay & Confirm</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("appToken");
+    if (!token) window.location.href = "login.html";
+
+    const pending = JSON.parse(sessionStorage.getItem("pendingBooking") || "null");
+    if (!pending) window.location.href = "search-results.html";
+
+    const summaryEl = document.getElementById("summary");
+    const msgEl = document.getElementById("msg");
+
+    function renderSummary() {
+      const p = pending.pricing || {};
+      summaryEl.innerHTML = `
+        <div class="row"><span>Seats</span><span>${pending.seats.join(", ")}</span></div>
+        <div class="row"><span>Fare</span><span>Rs ${p.fareAmount || 0}</span></div>
+        <div class="row"><span>GST</span><span>Rs ${p.gstAmount || 0}</span></div>
+        <div class="row"><span>Convenience Fee</span><span>Rs ${p.convenienceFee || 0}</span></div>
+        <div class="row"><span>Discount</span><span>- Rs ${p.discountAmount || 0}</span></div>
+        <div class="row"><span>Wallet Used</span><span>- Rs ${p.walletUsed || 0}</span></div>
+        <div class="row total"><span>Total Payable</span><span>Rs ${p.payable || 0}</span></div>
+      `;
+    }
+
+    async function payAndBook() {
+      const payBtn = document.getElementById("pay");
+      payBtn.disabled = true;
+      msgEl.textContent = "Processing payment...";
+
+      try {
+        const orderRes = await fetch("/api/payments/create-order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ amount: pending.pricing?.payable || 0 })
+        });
+        const orderPayload = await orderRes.json();
+        if (!orderRes.ok) throw new Error(orderPayload.error || "Payment order failed");
+
+        const bookingRes = await fetch("/api/bookings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            tripId: pending.tripId,
+            seats: pending.seats,
+            passengers: pending.passengers,
+            paymentOrderId: orderPayload.orderId,
+            couponCode: pending.couponCode,
+            useWallet: pending.useWallet
+          })
+        });
+        const bookingPayload = await bookingRes.json();
+        if (!bookingRes.ok) throw new Error(bookingPayload.error || "Booking failed");
+
+        sessionStorage.removeItem("pendingBooking");
+        const url = new URL("booking-success.html", window.location.origin);
+        url.searchParams.set("bookingId", bookingPayload.booking.id);
+        window.location.href = url.toString();
+      } catch (error) {
+        msgEl.textContent = error.message || "Payment failed";
+        payBtn.disabled = false;
+      }
+    }
+
+    document.getElementById("pay").onclick = payAndBook;
+    renderSummary();
+  </script>
+</body>
+</html>

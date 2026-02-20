@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Bookings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #eef2f8;
+      --card: #fff;
+      --line: #d7dfec;
+      --text: #1a2238;
+      --muted: #68738a;
+      --blue: #2f43a6;
+      --yellow: #f5cf0d;
+      --ok: #0d8846;
+      --danger: #b43f3f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Manrope, sans-serif; }
+
+    body { background: var(--bg); color: var(--text); }
+
+    .wrap { width: min(1120px, calc(100% - 2rem)); margin: 22px auto; }
+
+    h1 {
+      color: var(--blue);
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 40px;
+      border: none;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      padding: 0 16px;
+      cursor: pointer;
+    }
+
+    .btn.home { background: #e7edff; color: var(--blue); }
+    .btn.search { background: var(--yellow); color: #1b2438; }
+    .btn.logout { background: #ffe7e7; color: #a93333; }
+
+    .notice {
+      border: 1px solid #b8dfc5;
+      border-radius: 12px;
+      background: #effcf4;
+      color: var(--ok);
+      padding: 10px 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .notice.show { display: block; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 8px 22px rgba(25, 39, 74, 0.07);
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .pnr {
+      color: var(--blue);
+      font-size: 1.08rem;
+      font-weight: 900;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 0 10px;
+      font-size: 0.84rem;
+      font-weight: 800;
+    }
+
+    .status.booked { background: #e7f7ee; color: #13733e; }
+    .status.cancelled { background: #ffecec; color: var(--danger); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      color: #4f5c78;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .grid b { color: #1a2238; display: block; margin-bottom: 2px; }
+
+    .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn.cancel {
+      background: #ffe5e5;
+      color: #a23333;
+      border: 1px solid #f3c5c5;
+    }
+
+    .empty {
+      border: 1px dashed #b8c4e4;
+      border-radius: 16px;
+      padding: 16px;
+      background: #fff;
+      color: #52607d;
+      font-weight: 700;
+    }
+
+    @media (max-width: 880px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>My Bookings</h1>
+
+    <div class="topbar">
+      <button class="btn home" type="button" onclick="window.location.href='index.html'">Home</button>
+      <button class="btn search" type="button" onclick="window.location.href='search-results.html?source=Bangalore&destination=Hyderabad&date=2026-02-20'">Search Buses</button>
+      <button id="logout-btn" class="btn logout" type="button">Logout</button>
+    </div>
+
+    <div id="notice" class="notice"></div>
+    <div id="list"></div>
+  </main>
+
+  <script>
+    const appToken = localStorage.getItem("appToken");
+    if (!appToken) {
+      window.location.href = "login.html";
+    }
+
+    const listEl = document.getElementById("list");
+    const noticeEl = document.getElementById("notice");
+
+    function showNotice(text) {
+      noticeEl.textContent = text;
+      noticeEl.classList.add("show");
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      return date.toLocaleString();
+    }
+
+    function bookingCard(booking) {
+      const seats = booking.seats.join(", ");
+      const isCancelled = booking.status === "cancelled";
+
+      return `
+        <article class="card" data-id="${booking.id}">
+          <div class="head">
+            <p class="pnr">PNR: ${booking.pnr}</p>
+            <span class="status ${booking.status}">${booking.status.toUpperCase()} / ${booking.paymentStatus.toUpperCase()}</span>
+          </div>
+
+          <div class="grid">
+            <div><b>Route</b>${booking.source} to ${booking.destination}</div>
+            <div><b>Travel Date</b>${formatDate(booking.travelDate)}</div>
+            <div><b>Bus</b>${booking.trip ? booking.trip.busId : "-"}</div>
+            <div><b>Total</b>Rs ${booking.totalAmount}</div>
+            <div><b>Seats</b>${seats}</div>
+            <div><b>Operator</b>${booking.trip ? booking.trip.operatorName : "Friendly Travels"}</div>
+          </div>
+
+          <div class="actions">
+            <button class="btn home" type="button" data-ticket="${booking.id}">Ticket</button>
+            <button class="btn home" type="button" data-invoice="${booking.id}">Invoice</button>
+            ${isCancelled ? "" : `<button class=\"btn cancel\" type=\"button\" data-cancel=\"${booking.id}\">Cancel Booking</button>`}
+          </div>
+        </article>
+      `;
+    }
+
+    async function loadBookings() {
+      listEl.innerHTML = "";
+
+      try {
+        const response = await fetch("/api/bookings/my", {
+          headers: { Authorization: `Bearer ${appToken}` }
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          listEl.innerHTML = `<div class="empty">${payload.error || "Unable to load bookings"}</div>`;
+          return;
+        }
+
+        const bookings = payload.bookings || [];
+        if (!bookings.length) {
+          listEl.innerHTML = '<div class="empty">No bookings yet. Search and book a bus.</div>';
+          return;
+        }
+
+        listEl.innerHTML = bookings.map(bookingCard).join("");
+
+        listEl.querySelectorAll("[data-cancel]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const bookingId = button.dataset.cancel;
+            const confirmCancel = window.confirm("Cancel this booking?");
+            if (!confirmCancel) return;
+
+            const cancelRes = await fetch(`/api/bookings/${bookingId}/cancel`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${appToken}` }
+            });
+            const cancelPayload = await cancelRes.json();
+            if (!cancelRes.ok) {
+              alert(cancelPayload.error || "Cancel failed");
+              return;
+            }
+
+            showNotice(`Booking cancelled. Refund Rs ${cancelPayload.refundAmount || 0} added to wallet.`);
+            loadBookings();
+          });
+        });
+
+        listEl.querySelectorAll("[data-ticket]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const id = button.dataset.ticket;
+            const ticketRes = await fetch(`/api/bookings/${id}/ticket`, {
+              headers: { Authorization: `Bearer ${appToken}` }
+            });
+            const ticketHtml = await ticketRes.text();
+            if (!ticketRes.ok) {
+              alert("Unable to fetch ticket");
+              return;
+            }
+            const popup = window.open("", "_blank");
+            if (!popup) return;
+            popup.document.open();
+            popup.document.write(ticketHtml);
+            popup.document.close();
+          });
+        });
+
+        listEl.querySelectorAll("[data-invoice]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const id = button.dataset.invoice;
+            const invRes = await fetch(`/api/bookings/${id}/invoice`, {
+              headers: { Authorization: `Bearer ${appToken}` }
+            });
+            const invPayload = await invRes.json();
+            if (!invRes.ok) {
+              alert(invPayload.error || "Unable to fetch invoice");
+              return;
+            }
+            const inv = invPayload.invoice;
+            alert(`Invoice ${inv.invoiceNumber}\nFare: Rs ${inv.fareAmount}\nGST: Rs ${inv.gstAmount}\nFee: Rs ${inv.convenienceFee}\nDiscount: Rs ${inv.discountAmount}\nWallet: Rs ${inv.walletUsed}\nTotal: Rs ${inv.totalAmount}`);
+          });
+        });
+      } catch (error) {
+        listEl.innerHTML = '<div class="empty">Failed to connect to server</div>';
+      }
+    }
+
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      localStorage.removeItem("appToken");
+      localStorage.removeItem("mobile");
+      try {
+        await fetch("/api/logout");
+      } catch (error) {}
+      window.location.href = "login.html";
+    });
+
+    const pnr = new URLSearchParams(window.location.search).get("pnr");
+    if (pnr) showNotice(`Booking confirmed. PNR: ${pnr}`);
+
+    loadBookings();
+  </script>
+</body>
+</html>

@@ -106,6 +106,9 @@
   <h2>🚍 Driver Panel</h2>
 
   <input id="busId" placeholder="Enter Bus ID (e.g. BUS-101)">
+  <input id="source" placeholder="Source (e.g. Bangalore)">
+  <input id="destination" placeholder="Destination (e.g. Hyderabad)">
+  <input id="tripDate" type="date">
 
   <button id="startBtn" class="start" onclick="startSharing()">
     Start Sharing
@@ -122,8 +125,16 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  /* ---------------- SESSION CHECK ---------------- */
-  fetch("/api/session-check")
+  const appToken = localStorage.getItem("appToken");
+  if (!appToken) {
+    window.location.href = "login.html";
+  }
+
+  fetch("/api/session-check", {
+    headers: {
+      Authorization: `Bearer ${appToken}`
+    }
+  })
     .then(res => {
       if (!res.ok) window.location.href = "login.html";
     })
@@ -132,10 +143,36 @@
   const socket = io();
   let watchId = null;
   let currentBusId = null;
+  let currentSource = "";
+  let currentDestination = "";
+  let currentTripDate = "";
+
+  async function sendLiveLocation(payload) {
+    socket.emit("driverLocation", payload);
+
+    try {
+      await fetch("/api/tracking/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${appToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      // Socket updates still continue even when API call fails.
+    }
+  }
 
   function startSharing() {
     const busInput = document.getElementById("busId");
+    const sourceInput = document.getElementById("source");
+    const destinationInput = document.getElementById("destination");
+    const tripDateInput = document.getElementById("tripDate");
     const busId = busInput.value.trim();
+    const source = sourceInput.value.trim() || "Bangalore";
+    const destination = destinationInput.value.trim() || "Hyderabad";
+    const tripDate = tripDateInput.value.trim() || null;
 
     if (!busId) {
       alert("Please enter Bus ID");
@@ -148,21 +185,32 @@
     }
 
     currentBusId = busId;
+    currentSource = source;
+    currentDestination = destination;
+    currentTripDate = tripDate;
     busInput.disabled = true;
+    sourceInput.disabled = true;
+    destinationInput.disabled = true;
+    tripDateInput.disabled = true;
 
     document.getElementById("status").innerText =
       "📡 Requesting location permission...";
 
     watchId = navigator.geolocation.watchPosition(
-      pos => {
-        socket.emit("driverLocation", {
+      async pos => {
+        await sendLiveLocation({
           busId: currentBusId,
           lat: pos.coords.latitude,
-          lon: pos.coords.longitude
+          lon: pos.coords.longitude,
+          speed: pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0,
+          heading: pos.coords.heading || 0,
+          source: currentSource,
+          destination: currentDestination,
+          tripDate: currentTripDate
         });
 
         document.getElementById("status").innerText =
-          "🟢 Sharing live location";
+          "🟢 Sharing real-time location";
       },
       err => {
         document.getElementById("status").innerText =
@@ -185,9 +233,15 @@
     if (currentBusId) {
       socket.emit("stopSharing", { busId: currentBusId });
       currentBusId = null;
+      currentSource = "";
+      currentDestination = "";
+      currentTripDate = "";
     }
 
     document.getElementById("busId").disabled = false;
+    document.getElementById("source").disabled = false;
+    document.getElementById("destination").disabled = false;
+    document.getElementById("tripDate").disabled = false;
     document.getElementById("startBtn").disabled = false;
     document.getElementById("stopBtn").disabled = true;
 
@@ -196,6 +250,8 @@
   }
 
   async function logout() {
+    localStorage.removeItem("appToken");
+    localStorage.removeItem("mobile");
     try {
       await fetch("/api/logout");
     } catch (e) {}

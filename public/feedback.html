@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { margin: 0; min-height: 100vh; background: #eef2f8; font-family: Manrope, sans-serif; color: #1b2438; display: grid; place-items: center; padding: 16px; }
+    .card { width: min(620px, 100%); background: #fff; border: 1px solid #d7dfec; border-radius: 18px; padding: 18px; box-shadow: 0 8px 22px rgba(25,39,74,.08); }
+    h1 { margin: 0 0 10px; color: #2f43a6; }
+    p { margin: 0 0 12px; color: #5f6a82; font-weight: 600; }
+    textarea { width: 100%; min-height: 160px; border: 1px solid #cfd8ea; border-radius: 12px; padding: 12px; font-size: 1rem; resize: vertical; }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .btn { min-height: 42px; border: none; border-radius: 999px; padding: 0 16px; font-weight: 800; cursor: pointer; }
+    .btn.home { background: #e7edff; color: #2f43a6; }
+    .btn.submit { background: #f5cf0d; color: #1b2438; }
+    .msg { margin-top: 10px; min-height: 28px; color: #2f43a6; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Feedback</h1>
+    <p>Share your suggestions to improve Friendly Travels.</p>
+    <textarea id="feedback" placeholder="Write your feedback..."></textarea>
+    <div class="row">
+      <button class="btn home" type="button" onclick="window.location.href='my-profile.html'">Back</button>
+      <button id="submit" class="btn submit" type="button">Submit Feedback</button>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div id="list" style="margin-top:12px;"></div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("appToken");
+    if (!token) window.location.href = "login.html";
+
+    const token = localStorage.getItem("appToken");
+    if (!token) window.location.href = "login.html";
+
+    async function loadFeedback() {
+      try {
+        const response = await fetch("/api/feedback/my", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const payload = await response.json();
+        if (!response.ok) return;
+        const items = payload.feedback || [];
+        const host = document.getElementById("list");
+        if (!items.length) {
+          host.innerHTML = "";
+          return;
+        }
+        host.innerHTML = items
+          .map((item) => `<p style=\"padding:8px;border:1px solid #d7dfec;border-radius:10px;margin-bottom:8px;color:#4f5d78;font-weight:600;\">${item.message}</p>`)
+          .join("");
+      } catch (error) {}
+    }
+
+    document.getElementById("submit").addEventListener("click", async () => {
+      const text = document.getElementById("feedback").value.trim();
+      if (!text) {
+        document.getElementById("msg").textContent = "Please enter feedback.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/feedback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ message: text, rating: 5 })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          document.getElementById("msg").textContent = payload.error || "Failed to submit feedback.";
+          return;
+        }
+
+        document.getElementById("feedback").value = "";
+        document.getElementById("msg").textContent = "Thanks. Feedback submitted.";
+        loadFeedback();
+      } catch (error) {
+        document.getElementById("msg").textContent = "Unable to submit feedback.";
+      }
+    });
+
+    loadFeedback();
+  </script>
+</body>
+</html>

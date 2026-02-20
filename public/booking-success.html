@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Success</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body{margin:0;background:#eef2f8;font-family:Manrope,sans-serif;color:#1a2238;padding:16px}
+    .wrap{width:min(860px,100%);margin:0 auto;display:grid;gap:12px}
+    .card{background:#fff;border:1px solid #d7dfec;border-radius:16px;padding:14px;box-shadow:0 8px 22px rgba(25,39,74,.08)}
+    h1{margin:0 0 8px;color:#15803d}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;color:#4f5d78;font-weight:700}
+    .grid b{color:#1a2238;display:block}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn{min-height:42px;border:none;border-radius:999px;padding:0 16px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+    .btn.home{background:#e7edff;color:#2f43a6}
+    .btn.bookings{background:#f5cf0d;color:#1b2438}
+    .btn.track{background:#dce8ff;color:#2f43a6}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Booking Confirmed</h1>
+      <div id="details" class="grid">Loading...</div>
+      <div class="row">
+        <button id="ticket" class="btn home" type="button">Download Ticket</button>
+        <button id="invoice" class="btn home" type="button">View GST Invoice</button>
+        <a id="track" class="btn track">Track My Bus</a>
+        <a class="btn bookings" href="my-bookings.html">My Bookings</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("appToken");
+    if (!token) window.location.href = "login.html";
+
+    const bookingId = new URLSearchParams(window.location.search).get("bookingId");
+    if (!bookingId) window.location.href = "my-bookings.html";
+
+    async function init() {
+      const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        document.getElementById("details").textContent = payload.error || "Unable to load booking";
+        return;
+      }
+
+      const b = payload.booking;
+      const seats = (b.passengers || []).map((p) => p.seatNumber).join(", ");
+      document.getElementById("details").innerHTML = `
+        <div><b>PNR</b>${b.pnr}</div>
+        <div><b>Status</b>${b.status}</div>
+        <div><b>Route</b>${b.source} to ${b.destination}</div>
+        <div><b>Travel Date</b>${new Date(b.travelDate).toLocaleString()}</div>
+        <div><b>Seats</b>${seats}</div>
+        <div><b>Total Paid</b>Rs ${b.totalAmount}</div>
+      `;
+
+      document.getElementById("track").href = `live-tracking.html?busId=${encodeURIComponent(b.tripId?.busId || "BUS-101")}&source=${encodeURIComponent(b.source)}&destination=${encodeURIComponent(b.destination)}&date=${encodeURIComponent(String(b.travelDate).slice(0,10))}`;
+
+      document.getElementById("ticket").onclick = async () => {
+        const ticketRes = await fetch(`/api/bookings/${b._id}/ticket`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const ticketHtml = await ticketRes.text();
+        if (!ticketRes.ok) {
+          alert("Unable to fetch ticket");
+          return;
+        }
+        const popup = window.open("", "_blank");
+        if (!popup) return;
+        popup.document.open();
+        popup.document.write(ticketHtml);
+        popup.document.close();
+      };
+
+      document.getElementById("invoice").onclick = async () => {
+        const invRes = await fetch(`/api/bookings/${b._id}/invoice`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const invPayload = await invRes.json();
+        if (!invRes.ok) {
+          alert(invPayload.error || "Unable to fetch invoice");
+          return;
+        }
+        const inv = invPayload.invoice;
+        alert(`Invoice ${inv.invoiceNumber}\nFare: Rs ${inv.fareAmount}\nGST: Rs ${inv.gstAmount}\nFee: Rs ${inv.convenienceFee}\nDiscount: Rs ${inv.discountAmount}\nWallet: Rs ${inv.walletUsed}\nTotal: Rs ${inv.totalAmount}`);
+      };
+    }
+
+    init();
+  </script>
+</body>
+</html>

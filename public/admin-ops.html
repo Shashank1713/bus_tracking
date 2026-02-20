@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #eef2f8;
+      --card: #fff;
+      --line: #d7dfec;
+      --text: #1a2238;
+      --muted: #68738a;
+      --blue: #2f43a6;
+      --yellow: #f5cf0d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Manrope, sans-serif; }
+    body { background: var(--bg); color: var(--text); }
+
+    .wrap { width: min(1200px, calc(100% - 2rem)); margin: 20px auto; display: grid; gap: 12px; }
+
+    h1 { color: var(--blue); font-size: 1.7rem; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 8px 22px rgba(25, 39, 74, 0.07);
+    }
+
+    .title { font-size: 1.08rem; color: var(--blue); font-weight: 800; margin-bottom: 8px; }
+
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+    input {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid #cfd8ea;
+      border-radius: 10px;
+      padding: 0 10px;
+      font-size: 0.94rem;
+    }
+
+    .btn {
+      min-height: 40px;
+      border: none;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      padding: 0 14px;
+      cursor: pointer;
+    }
+
+    .btn.seed { background: var(--yellow); color: #1b2438; }
+    .btn.primary { background: var(--blue); color: #fff; }
+    .btn.muted { background: #e7edff; color: var(--blue); }
+
+    .msg {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fbff;
+      color: #51607c;
+      padding: 8px 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+    }
+
+    .list { display: grid; gap: 8px; margin-top: 8px; }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfcff;
+      padding: 10px;
+      color: #4d5a77;
+      font-weight: 700;
+    }
+
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Admin / Operator Panel</h1>
+
+    <div class="row">
+      <button class="btn muted" type="button" onclick="window.location.href='index.html'">Home</button>
+      <button class="btn muted" type="button" onclick="window.location.href='my-bookings.html'">My Bookings</button>
+      <button id="seed-btn" class="btn seed" type="button">Seed Demo Data</button>
+      <button id="reload-btn" class="btn primary" type="button">Reload Lists</button>
+    </div>
+
+    <div id="message" class="msg">Ready.</div>
+
+    <section class="card">
+      <p class="title">Create / Update Route</p>
+      <div class="grid">
+        <input id="route-source" placeholder="Source (e.g. Bangalore)" />
+        <input id="route-destination" placeholder="Destination (e.g. Hyderabad)" />
+        <input id="route-distance" type="number" placeholder="Distance KM" />
+        <button id="save-route" class="btn primary" type="button">Save Route</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="title">Create Trip</p>
+      <div class="grid">
+        <input id="trip-source" placeholder="Source" />
+        <input id="trip-destination" placeholder="Destination" />
+        <input id="trip-bus-id" placeholder="Bus ID" />
+        <input id="trip-fare" type="number" placeholder="Fare" />
+        <input id="trip-seats" type="number" placeholder="Total Seats (40)" />
+        <input id="trip-departure" type="datetime-local" />
+        <input id="trip-arrival" type="datetime-local" />
+        <button id="save-trip" class="btn primary" type="button">Save Trip</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="title">Routes</p>
+      <div id="route-list" class="list"></div>
+    </section>
+
+    <section class="card">
+      <p class="title">Trips</p>
+      <div id="trip-list" class="list"></div>
+    </section>
+  </main>
+
+  <script>
+    const appToken = localStorage.getItem("appToken");
+    const messageEl = document.getElementById("message");
+
+    function setMessage(text) {
+      messageEl.textContent = text;
+    }
+
+    async function api(path, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      if (appToken) headers.Authorization = `Bearer ${appToken}`;
+      const response = await fetch(path, { ...options, headers });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Request failed");
+      return payload;
+    }
+
+    async function loadRoutes() {
+      const routeListEl = document.getElementById("route-list");
+      try {
+        const payload = await api("/api/admin/routes");
+        const routes = payload.routes || [];
+        if (!routes.length) {
+          routeListEl.innerHTML = '<div class="item">No routes yet.</div>';
+          return;
+        }
+        routeListEl.innerHTML = routes
+          .map((route) => `<div class="item">${route.source} to ${route.destination} (${route.distanceKm || 0} km)</div>`)
+          .join("");
+      } catch (error) {
+        routeListEl.innerHTML = `<div class="item">${error.message}</div>`;
+      }
+    }
+
+    async function loadTrips() {
+      const tripListEl = document.getElementById("trip-list");
+      try {
+        const payload = await api("/api/admin/trips");
+        const trips = payload.trips || [];
+        if (!trips.length) {
+          tripListEl.innerHTML = '<div class="item">No trips yet.</div>';
+          return;
+        }
+        tripListEl.innerHTML = trips
+          .map((trip) => {
+            const dep = new Date(trip.departureTime).toLocaleString();
+            const arr = new Date(trip.arrivalTime).toLocaleString();
+            const route = trip.routeId ? `${trip.routeId.source} to ${trip.routeId.destination}` : "-";
+            return `<div class="item"><b>${trip.busId}</b> | ${route}<br/>${dep} -> ${arr}<br/>Fare Rs ${trip.fare} | Seats ${trip.totalSeats}</div>`;
+          })
+          .join("");
+      } catch (error) {
+        tripListEl.innerHTML = `<div class="item">${error.message}</div>`;
+      }
+    }
+
+    async function saveRoute() {
+      const source = document.getElementById("route-source").value.trim();
+      const destination = document.getElementById("route-destination").value.trim();
+      const distanceKm = Number(document.getElementById("route-distance").value || 0);
+
+      try {
+        await api("/api/admin/routes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source, destination, distanceKm })
+        });
+        setMessage("Route saved.");
+        loadRoutes();
+      } catch (error) {
+        setMessage(error.message);
+      }
+    }
+
+    async function saveTrip() {
+      const source = document.getElementById("trip-source").value.trim();
+      const destination = document.getElementById("trip-destination").value.trim();
+      const busId = document.getElementById("trip-bus-id").value.trim();
+      const fare = Number(document.getElementById("trip-fare").value || 0);
+      const totalSeats = Number(document.getElementById("trip-seats").value || 40);
+      const departureTime = document.getElementById("trip-departure").value;
+      const arrivalTime = document.getElementById("trip-arrival").value;
+
+      try {
+        await api("/api/admin/trips", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source, destination, busId, fare, totalSeats, departureTime, arrivalTime })
+        });
+        setMessage("Trip created.");
+        loadTrips();
+      } catch (error) {
+        setMessage(error.message);
+      }
+    }
+
+    document.getElementById("seed-btn").addEventListener("click", async () => {
+      try {
+        const payload = await api("/api/admin/seed-demo", { method: "POST" });
+        setMessage(payload.message || "Demo data ready.");
+        loadRoutes();
+        loadTrips();
+      } catch (error) {
+        setMessage(error.message);
+      }
+    });
+
+    document.getElementById("reload-btn").addEventListener("click", () => {
+      loadRoutes();
+      loadTrips();
+    });
+
+    document.getElementById("save-route").addEventListener("click", saveRoute);
+    document.getElementById("save-trip").addEventListener("click", saveTrip);
+
+    loadRoutes();
+    loadTrips();
+  </script>
+</body>
+</html>

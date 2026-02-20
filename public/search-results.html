@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bus Search Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Cinzel:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue: #2f43a6;
+      --yellow: #f5cf0d;
+      --text: #171e2f;
+      --muted: #68738a;
+      --line: #d9deeb;
+      --bg: #eef1f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Manrope, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .nav-wrap {
+      background: #1b1b1f;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .nav {
+      width: min(1360px, calc(100% - 2rem));
+      margin: 0 auto;
+      min-height: 92px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 12px 0;
+    }
+
+    .logo {
+      text-decoration: none;
+      color: #ffd60a;
+      line-height: 1;
+    }
+
+    .logo strong {
+      display: block;
+      font-size: 2.45rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      font-family: Cinzel, serif;
+    }
+
+    .logo span {
+      display: block;
+      font-size: 0.92rem;
+      letter-spacing: 0.34em;
+      font-weight: 800;
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+
+    .menu {
+      display: flex;
+      gap: 1.8rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .menu a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.04rem;
+    }
+
+    .signin {
+      text-decoration: none;
+      color: #0c111b;
+      background: var(--yellow);
+      border-radius: 999px;
+      padding: 12px 26px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .top-search {
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .top-search-inner {
+      width: min(1360px, calc(100% - 2rem));
+      margin: 0 auto;
+      min-height: 76px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+    }
+
+    .trip-pill {
+      min-height: 44px;
+      border-radius: 999px;
+      border: 1px solid #d1d8e8;
+      background: #f8f9fc;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.04rem;
+    }
+
+    .trip-pill b {
+      font-size: 1.15rem;
+    }
+
+    .layout {
+      width: min(1360px, calc(100% - 2rem));
+      margin: 16px auto 30px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .filters {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      position: sticky;
+      top: 14px;
+    }
+
+    .filters-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 1.4rem;
+    }
+
+    .f-block {
+      border-top: 1px solid var(--line);
+      padding: 16px 0;
+    }
+
+    .f-title {
+      color: var(--blue);
+      font-size: 1.03rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #505c75;
+      min-height: 34px;
+      font-weight: 600;
+    }
+
+    .results {
+      display: grid;
+      gap: 14px;
+    }
+
+    .route-tabs {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .route-pill {
+      min-height: 54px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: var(--blue);
+    }
+
+    .promo-pill {
+      min-height: 54px;
+      border-radius: 14px;
+      background: #ffd63b;
+      color: #2a3b83;
+      font-size: 1.2rem;
+      font-weight: 800;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .summary {
+      color: var(--blue);
+      font-size: 1.2rem;
+      font-weight: 800;
+      padding: 2px 0;
+    }
+
+    .bus-card {
+      background: #fff;
+      border: 1px solid #9eb2f8;
+      border-radius: 24px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .bus-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      border-radius: 999px;
+      border: 1px solid #5d74d1;
+      padding: 0 12px;
+      color: #2f43a6;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .time {
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+
+    .price-wrap {
+      text-align: right;
+      display: grid;
+      justify-items: end;
+      gap: 8px;
+    }
+
+    .price {
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+
+    .seats {
+      color: #757d90;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 38px;
+      border: none;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      padding: 0 16px;
+      cursor: pointer;
+    }
+
+    .btn.track {
+      background: #e7ecff;
+      color: var(--blue);
+    }
+
+    .btn.book {
+      background: var(--yellow);
+      color: #131726;
+    }
+
+    .empty {
+      border: 1px dashed #b8c4e4;
+      border-radius: 18px;
+      padding: 18px;
+      color: #4a5671;
+      background: #fff;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1200px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        position: static;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .top-search-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .bus-card {
+        grid-template-columns: 1fr;
+      }
+
+      .price-wrap,
+      .btn-row {
+        justify-content: flex-start;
+        justify-items: start;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav-wrap">
+    <div class="nav">
+      <a class="logo" href="index.html">
+        <strong>FRIENDLY</strong>
+        <span>TRAVELS</span>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+        <a href="popular-destinations.html">Popular Destinations</a>
+        <a href="my-bookings.html">My Trips</a>
+        <a href="admin-ops.html">Admin</a>
+      </nav>
+
+      <a class="signin" href="login.html">Sign in / Sign up</a>
+    </div>
+  </header>
+
+  <section class="top-search" aria-label="Trip search summary">
+    <div class="top-search-inner">
+      <div class="trip-pill">From <b id="from-city">Bangalore</b></div>
+      <div class="trip-pill">To <b id="to-city">Hyderabad</b></div>
+      <div class="trip-pill">Date <b id="date-label">20-02-2026</b></div>
+      <button id="refresh-btn" class="btn track" type="button">Refresh Search</button>
+    </div>
+  </section>
+
+  <main class="layout">
+    <aside class="filters" aria-label="Filter results">
+      <div class="filters-head">
+        <span>Filters</span>
+      </div>
+
+      <div class="f-block">
+        <div class="f-title">Bus Type</div>
+        <label class="check"><input type="checkbox" checked disabled /> AC Sleeper</label>
+        <label class="check"><input type="checkbox" checked disabled /> Non AC Sleeper</label>
+      </div>
+
+      <div class="f-block">
+        <div class="f-title">Facilities</div>
+        <label class="check"><input type="checkbox" checked disabled /> Live Tracking</label>
+        <label class="check"><input type="checkbox" checked disabled /> Charging Point</label>
+      </div>
+
+      <div class="f-block">
+        <div class="f-title">Note</div>
+        <p class="check">Use "Seed Demo" from Admin page if no trips appear.</p>
+      </div>
+    </aside>
+
+    <section class="results" aria-label="Available buses">
+      <div class="route-tabs">
+        <div class="route-pill"><span id="route-title">Bangalore to Hyderabad</span></div>
+        <div class="promo-pill">Get flat 15% on all bookings.</div>
+      </div>
+
+      <div id="summary" class="summary">Loading trips...</div>
+      <div id="results-list"></div>
+    </section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get("source") || "Bangalore";
+    const destination = params.get("destination") || "Hyderabad";
+    const dateRaw = params.get("date") || "2026-02-20";
+
+    const fromEl = document.getElementById("from-city");
+    const toEl = document.getElementById("to-city");
+    const dateEl = document.getElementById("date-label");
+    const routeEl = document.getElementById("route-title");
+    const summaryEl = document.getElementById("summary");
+    const listEl = document.getElementById("results-list");
+
+    function formatDate(isoDate) {
+      const parts = String(isoDate).split("-");
+      if (parts.length !== 3) return isoDate;
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+
+    function formatTime(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function renderTrips(trips) {
+      listEl.innerHTML = "";
+
+      if (!trips.length) {
+        listEl.innerHTML = '<div class="empty">No buses found for this route/date. Open <b>Admin</b> and click <b>Seed Demo Data</b>.</div>';
+        return;
+      }
+
+      trips.forEach((trip) => {
+        const card = document.createElement("article");
+        card.className = "bus-card";
+
+        const type = (trip.amenities || []).includes("AC") ? "AC Sleeper" : "Non AC Sleeper";
+
+        card.innerHTML = `
+          <div>
+            <h2 class="bus-title">${trip.operatorName} - ${trip.busId}</h2>
+            <span class="chip">${type}</span>
+            <p class="meta">${trip.source} to ${trip.destination}</p>
+          </div>
+          <div>
+            <p class="time">${formatTime(trip.departureTime)}</p>
+            <p class="meta">Departure</p>
+            <p class="time" style="margin-top:10px;">${formatTime(trip.arrivalTime)}</p>
+            <p class="meta">Arrival</p>
+          </div>
+          <div>
+            <p class="time">${trip.durationMinutes} min</p>
+            <p class="meta">Duration</p>
+          </div>
+          <div class="price-wrap">
+            <p class="price">Rs ${trip.fare}</p>
+            <p class="seats">${trip.availableSeats} seats available</p>
+            <div class="btn-row">
+              <button class="btn track" data-track="${trip.busId}">Track Live</button>
+              <button class="btn book" data-book="${trip._id}">View Bus</button>
+            </div>
+          </div>
+        `;
+
+        listEl.appendChild(card);
+      });
+
+      listEl.querySelectorAll("[data-track]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const busId = button.dataset.track;
+          const liveUrl = new URL("live-tracking.html", window.location.origin);
+          liveUrl.searchParams.set("busId", busId);
+          liveUrl.searchParams.set("source", source);
+          liveUrl.searchParams.set("destination", destination);
+          liveUrl.searchParams.set("date", dateRaw);
+          window.location.href = liveUrl.toString();
+        });
+      });
+
+      listEl.querySelectorAll("[data-book]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const tripId = button.dataset.book;
+          const bookUrl = new URL("bus-details.html", window.location.origin);
+          bookUrl.searchParams.set("tripId", tripId);
+          window.location.href = bookUrl.toString();
+        });
+      });
+    }
+
+    async function loadTrips() {
+      fromEl.textContent = source;
+      toEl.textContent = destination;
+      routeEl.textContent = `${source} to ${destination}`;
+      dateEl.textContent = formatDate(dateRaw);
+
+      summaryEl.textContent = "Loading trips...";
+      try {
+        const response = await fetch(`/api/trips/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${encodeURIComponent(dateRaw)}`);
+        const payload = await response.json();
+
+        if (!response.ok) {
+          summaryEl.textContent = payload.error || "Unable to fetch trips";
+          listEl.innerHTML = "";
+          return;
+        }
+
+        const trips = payload.trips || [];
+        summaryEl.textContent = `${trips.length} buses found`;
+        renderTrips(trips);
+      } catch (error) {
+        summaryEl.textContent = "Failed to connect to server";
+        listEl.innerHTML = "";
+      }
+    }
+
+    document.getElementById("refresh-btn").addEventListener("click", loadTrips);
+    loadTrips();
+  </script>
+</body>
+</html>

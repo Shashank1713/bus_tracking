@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: bus-tracking
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/openapi.json
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGO_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: OTP_PROVIDER
+        value: fast2sms
+      - key: OTP_TTL_MINUTES
+        value: 5
+      - key: OTP_FALLBACK_DEMO
+        value: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: FAST2SMS_API_KEY
+        sync: false
+      - key: FAST2SMS_SENDER_ID
+        sync: false
+      - key: FAST2SMS_TEMPLATE_ID
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_KEY
+        sync: false
+      - key: FIREBASE_WEB_API_KEY
+        sync: false
+      - key: FIREBASE_WEB_AUTH_DOMAIN
+        sync: false
+      - key: FIREBASE_WEB_PROJECT_ID
+        sync: false
+      - key: FIREBASE_WEB_APP_ID
+        sync: false

@@ -45,6 +45,21 @@
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
+  const appToken = localStorage.getItem("appToken");
+  if (!appToken) {
+    window.location.href = "login.html";
+  }
+
+  fetch("/api/session-check", {
+    headers: {
+      Authorization: `Bearer ${appToken}`
+    }
+  })
+    .then(res => {
+      if (!res.ok) window.location.href = "login.html";
+    })
+    .catch(() => window.location.href = "login.html");
+
   const socket = io();
 
   // Initialize map
@@ -93,4 +108,3 @@
 
 </body>
 </html>
-

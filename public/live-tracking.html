@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Bus Tracking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #eef2f9;
+      --card: #ffffff;
+      --line: #d8dfef;
+      --text: #1d2438;
+      --muted: #667085;
+      --blue: #2f43a6;
+      --yellow: #f5cf0d;
+      --success: #0f9d58;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Manrope, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1280px, calc(100% - 2rem));
+      margin: 18px auto 24px;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 14px;
+    }
+
+    .panel,
+    .map-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 10px 24px rgba(25, 39, 74, 0.08);
+    }
+
+    .panel {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1 {
+      font-size: 1.45rem;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .meta {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .meta b {
+      color: var(--text);
+    }
+
+    .status {
+      min-height: 50px;
+      border-radius: 12px;
+      border: 1px solid #c9dfd0;
+      background: #edfbf2;
+      color: #13733e;
+      padding: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fbfcff;
+    }
+
+    .stat p:first-child {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .stat p:last-child {
+      color: var(--text);
+      font-size: 1.06rem;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+    }
+
+    .btn {
+      min-height: 44px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .btn.back {
+      background: var(--yellow);
+      color: #1f2230;
+    }
+
+    .map-card {
+      overflow: hidden;
+      min-height: 640px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-head {
+      min-height: 56px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+    }
+
+    .map-head h2 {
+      font-size: 1.12rem;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    #map {
+      flex: 1;
+      min-height: 560px;
+    }
+
+    @media (max-width: 980px) {
+      .wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="panel">
+      <h1>Live Bus Tracking</h1>
+
+      <div class="meta">
+        <p>Bus ID: <b id="bus-id">BUS-101</b></p>
+        <p>Route: <b id="route-label">Bangalore to Hyderabad</b></p>
+        <p>Date: <b id="date-label">2026-02-20</b></p>
+      </div>
+
+      <div class="status" id="live-status">Waiting for live bus location...</div>
+
+      <div class="stats">
+        <div class="stat">
+          <p>Last Update</p>
+          <p id="last-update">-</p>
+        </div>
+        <div class="stat">
+          <p>Speed</p>
+          <p id="speed">0 km/h</p>
+        </div>
+        <div class="stat">
+          <p>Latitude</p>
+          <p id="lat">-</p>
+        </div>
+        <div class="stat">
+          <p>Longitude</p>
+          <p id="lon">-</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <p style="color: var(--muted); font-weight: 700;">Tracking updates come from active driver GPS sharing.</p>
+        <button class="btn back" type="button" onclick="window.history.back()">Back</button>
+      </div>
+    </section>
+
+    <section class="map-card">
+      <div class="map-head">
+        <h2 id="map-title">BUS-101 Location</h2>
+        <span id="online-state" style="color: var(--success); font-weight: 800;">Live</span>
+      </div>
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const busId = params.get("busId") || "BUS-101";
+    const source = params.get("source") || "Bangalore";
+    const destination = params.get("destination") || "Hyderabad";
+    const date = params.get("date") || "2026-02-20";
+
+    document.getElementById("bus-id").textContent = busId;
+    document.getElementById("route-label").textContent = `${source} to ${destination}`;
+    document.getElementById("date-label").textContent = date;
+    document.getElementById("map-title").textContent = `${busId} Location`;
+
+    const statusEl = document.getElementById("live-status");
+    const lastUpdateEl = document.getElementById("last-update");
+    const speedEl = document.getElementById("speed");
+    const latEl = document.getElementById("lat");
+    const lonEl = document.getElementById("lon");
+    const onlineStateEl = document.getElementById("online-state");
+
+    const map = L.map("map").setView([15.3173, 75.7139], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
+
+    const busIcon = L.icon({
+      iconUrl: "https://cdn-icons-png.flaticon.com/512/1068/1068631.png",
+      iconSize: [42, 42],
+      iconAnchor: [21, 21]
+    });
+
+    let busMarker = null;
+    let lastUpdateTimestamp = 0;
+
+    function formatTime(ts) {
+      if (!ts) return "-";
+      return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+
+    function updateUI(data) {
+      if (!data || typeof data.lat !== "number" || typeof data.lon !== "number") return;
+
+      if (!busMarker) {
+        busMarker = L.marker([data.lat, data.lon], { icon: busIcon }).addTo(map);
+        map.setView([data.lat, data.lon], 12);
+      } else {
+        busMarker.setLatLng([data.lat, data.lon]);
+      }
+
+      busMarker.bindPopup(`🚌 ${busId}<br/>${source} to ${destination}`);
+
+      statusEl.textContent = "Receiving live location updates.";
+      lastUpdateEl.textContent = formatTime(data.updatedAt);
+      speedEl.textContent = `${Math.round(data.speed || 0)} km/h`;
+      latEl.textContent = data.lat.toFixed(5);
+      lonEl.textContent = data.lon.toFixed(5);
+      lastUpdateTimestamp = Number(data.updatedAt || Date.now());
+      onlineStateEl.textContent = "Live";
+      onlineStateEl.style.color = "#0f9d58";
+    }
+
+    async function fetchInitialLocation() {
+      try {
+        const response = await fetch(`/api/tracking/buses/${encodeURIComponent(busId)}`);
+        if (!response.ok) {
+          statusEl.textContent = "No current location for this bus. Ask driver to start live sharing.";
+          onlineStateEl.textContent = "Offline";
+          onlineStateEl.style.color = "#a64b4b";
+          return;
+        }
+        const payload = await response.json();
+        updateUI(payload.bus);
+      } catch (error) {
+        statusEl.textContent = "Unable to fetch live location.";
+      }
+    }
+
+    const socket = io();
+    socket.emit("joinBus", { busId });
+
+    socket.on("busLocation", (payload) => {
+      if (!payload || payload.busId !== busId) return;
+      updateUI(payload);
+    });
+
+    socket.on("connect_error", () => {
+      statusEl.textContent = "Live socket disconnected. Retrying...";
+      onlineStateEl.textContent = "Reconnecting";
+      onlineStateEl.style.color = "#a67d27";
+    });
+
+    setInterval(() => {
+      if (!lastUpdateTimestamp) return;
+      const secondsSinceLast = Math.floor((Date.now() - lastUpdateTimestamp) / 1000);
+      if (secondsSinceLast > 20) {
+        onlineStateEl.textContent = "Stale";
+        onlineStateEl.style.color = "#a67d27";
+        statusEl.textContent = `Waiting for latest driver update (${secondsSinceLast}s ago).`;
+      }
+    }, 5000);
+
+    window.addEventListener("beforeunload", () => {
+      socket.emit("leaveBus", { busId });
+    });
+
+    fetchInitialLocation();
+  </script>
+</body>
+</html>

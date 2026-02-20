@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Popular Destinations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #e6bc88;
+      --title: #101a35;
+      --text: #ffffff;
+      --shadow: rgba(19, 28, 52, 0.35);
+      --nav-bg: #ffefd6;
+      --nav-link: #131d32;
+      --brand: #0f1833;
+      --orange: #ff8218;
+      --orange-dark: #eb730f;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Manrope, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      color: #1b2438;
+      padding: 0;
+    }
+
+    .wrap {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+
+    .nav-wrap {
+      background: var(--nav-bg);
+      border-bottom: 1px solid #e8edf4;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .nav {
+      width: min(1320px, calc(100% - 2rem));
+      margin: 0 auto;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 12px 0;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      text-decoration: none;
+      color: var(--brand);
+      line-height: 1;
+      min-width: 130px;
+    }
+
+    .logo strong {
+      display: block;
+      font-size: 2.85rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    .logo span {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.36em;
+      margin-top: 2px;
+      color: #7282a3;
+      text-transform: uppercase;
+    }
+
+    .menu {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .menu a {
+      text-decoration: none;
+      color: var(--nav-link);
+      font-size: 1.02rem;
+      font-weight: 700;
+    }
+
+    .menu a:hover {
+      color: #32486f;
+    }
+
+    .signin {
+      text-decoration: none;
+      color: #fff;
+      background: linear-gradient(180deg, #ff8d23 0%, var(--orange) 100%);
+      border-radius: 999px;
+      padding: 14px 28px;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 0 10px 22px rgba(255, 130, 24, 0.32);
+      transition: transform 180ms ease, background-color 180ms ease;
+    }
+
+    .signin:hover {
+      transform: translateY(-1px);
+      background: linear-gradient(180deg, #ff9f41 0%, var(--orange-dark) 100%);
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4.2vw, 3.3rem);
+      color: var(--title);
+      margin-bottom: 26px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      min-height: 290px;
+      text-decoration: none;
+      box-shadow: 0 12px 24px var(--shadow);
+      isolation: isolate;
+      display: flex;
+      align-items: end;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to top, rgba(9, 14, 25, 0.9) 0%, rgba(9, 14, 25, 0.05) 55%);
+      z-index: 1;
+    }
+
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      transition: transform 0.35s ease;
+    }
+
+    .card span {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      text-align: center;
+      color: var(--text);
+      font-size: 1.06rem;
+      font-weight: 700;
+      padding: 0 10px 16px;
+      text-shadow: 0 3px 12px rgba(0, 0, 0, 0.65);
+    }
+
+    .card:hover img {
+      transform: scale(1.05);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 26px;
+      color: #0f224f;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        gap: 16px;
+      }
+
+      .card {
+        min-height: 260px;
+        border-radius: 18px;
+      }
+
+      .wrap {
+        padding: 20px 12px 36px;
+      }
+
+      .nav {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav-wrap">
+    <div class="nav">
+      <a class="logo" href="index.html">
+        <strong>FRIENDLY</strong>
+        <span>TRAVELS</span>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+        <a href="popular-destinations.html">Popular Destinations</a>
+        <a href="my-bookings.html">My Trips</a>
+        <a href="admin-ops.html">Admin</a>
+      </nav>
+
+      <a class="signin" href="login.html">Sign in / Sign up</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1>Popular Destinations</h1>
+
+    <section class="grid" aria-label="Popular routes">
+      <a class="card" href="#">
+        <img src="https://plus.unsplash.com/premium_photo-1697730318734-2ffb7e5a0bfc?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8ODF8fHB1bmUlMjBjaXR5fGVufDB8fDB8fHww" alt="Bangalore to Pune route" />
+        <span>Bangalore To Pune</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://images.pexels.com/photos/3581364/pexels-photo-3581364.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Bangalore to Mumbai route" />
+        <span>Bangalore To Mumbai</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://images.unsplash.com/photo-1586076900425-c57ea60642b7?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fG1hbmdhbG9yZXxlbnwwfHwwfHx8MA%3D%3D" alt="Bangalore to Mangalore route" />
+        <span>Bangalore To Mangalore</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://images.unsplash.com/photo-1657981630164-769503f3a9a8?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8aHlkZXJhYmFkfGVufDB8fDB8fHww" alt="Bangalore to Hyderabad route" />
+        <span>Bangalore To Hyderabad</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://images.pexels.com/photos/373290/pexels-photo-373290.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Bangalore to Goa route" />
+        <span>Bangalore To Goa</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://plus.unsplash.com/premium_photo-1697730464803-fcede713753e?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8YWhtZWRhYmFkfGVufDB8fDB8fHww" alt="Bangalore to Ahmedabad route" />
+        <span>Bangalore To Ahmedabad</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://media.istockphoto.com/id/484164585/photo/shirdi-saibaba-mandir-shirdi-maharashtra-india.webp?a=1&b=1&s=612x612&w=0&k=20&c=c0-g_8l-HTmlpTtmEM1cI2zPizdMWYB2vI7da0thfeY=" alt="Bangalore to Shirdi route" />
+        <span>Bangalore To Shirdi</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://images.pexels.com/photos/132037/pexels-photo-132037.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Bangalore to Nagpur route" />
+        <span>Bangalore To Nagpur</span>
+      </a>
+      <a class="card" href="#">
+        <img src="https://images.unsplash.com/photo-1590766940554-634a7ed41450?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8bXlzb3JlfGVufDB8fDB8fHww" alt="Bangalore to Mysore route" />
+        <span>Bangalore To Mysore</span>
+      </a>
+    </section>
+
+    <a class="back-link" href="index.html">Back to Home</a>
+  </main>
+</body>
+</html>

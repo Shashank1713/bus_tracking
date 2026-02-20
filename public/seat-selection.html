@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seat Selection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body{margin:0;background:#eef2f8;font-family:Manrope,sans-serif;color:#1a2238;padding:16px}
+    .wrap{width:min(860px,100%);margin:0 auto;display:grid;gap:12px}
+    .card{background:#fff;border:1px solid #d7dfec;border-radius:16px;padding:14px;box-shadow:0 8px 22px rgba(25,39,74,.08)}
+    h1{margin:0 0 8px;color:#2f43a6}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(56px,1fr));gap:10px}
+    .seat{min-height:44px;border:1px solid #b8c4e7;border-radius:10px;background:#f5f8ff;color:#2a3768;font-weight:800;cursor:pointer}
+    .seat.booked{background:#f4d7d7;border-color:#d7a9a9;color:#9e5a5a;cursor:not-allowed}
+    .seat.selected{background:#2f43a6;border-color:#2f43a6;color:#fff}
+    .summary{margin-top:10px;color:#4f5d78;font-weight:700}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn{min-height:42px;border:none;border-radius:999px;padding:0 16px;font-weight:800;cursor:pointer}
+    .btn.back{background:#e7edff;color:#2f43a6}
+    .btn.next{background:#f5cf0d;color:#1b2438}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Select Seats</h1>
+      <div id="trip-meta"></div>
+      <div id="seat-grid" class="grid"></div>
+      <p id="summary" class="summary">Selected seats: -</p>
+      <div class="row">
+        <button class="btn back" type="button" onclick="window.history.back()">Back</button>
+        <button id="next" class="btn next" type="button">Continue</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tripId = new URLSearchParams(window.location.search).get("tripId");
+    if (!tripId) window.location.href = "search-results.html";
+
+    let trip = null;
+    let selectedSeats = [];
+
+    function seatList(totalSeats) {
+      const seats = [];
+      for (let row = 1; row <= Math.ceil(totalSeats / 4); row += 1) {
+        for (let col = 1; col <= 4; col += 1) {
+          const index = (row - 1) * 4 + col;
+          if (index <= totalSeats) seats.push(`S${index}`);
+        }
+      }
+      return seats;
+    }
+
+    function toggleSeat(seat) {
+      if (selectedSeats.includes(seat)) {
+        selectedSeats = selectedSeats.filter((x) => x !== seat);
+      } else {
+        selectedSeats.push(seat);
+      }
+      renderSeats();
+    }
+
+    function renderSeats() {
+      const booked = new Set(trip.bookedSeats || []);
+      const all = seatList(trip.totalSeats);
+      const grid = document.getElementById("seat-grid");
+      grid.innerHTML = "";
+
+      all.forEach((seat) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "seat";
+        btn.textContent = seat;
+        if (booked.has(seat)) {
+          btn.classList.add("booked");
+          btn.disabled = true;
+        } else if (selectedSeats.includes(seat)) {
+          btn.classList.add("selected");
+        }
+        btn.onclick = () => toggleSeat(seat);
+        grid.appendChild(btn);
+      });
+
+      document.getElementById("summary").textContent = `Selected seats: ${selectedSeats.join(", ") || "-"}`;
+    }
+
+    async function init() {
+      const res = await fetch(`/api/trips/${encodeURIComponent(tripId)}`);
+      const payload = await res.json();
+      if (!res.ok) {
+        document.getElementById("trip-meta").textContent = payload.error || "Unable to load trip";
+        return;
+      }
+
+      trip = payload.trip;
+      document.getElementById("trip-meta").textContent = `${trip.source} to ${trip.destination} | Fare Rs ${trip.fare}`;
+      renderSeats();
+    }
+
+    document.getElementById("next").onclick = () => {
+      if (!selectedSeats.length) {
+        alert("Please select at least one seat.");
+        return;
+      }
+      const url = new URL("passenger-details.html", window.location.origin);
+      url.searchParams.set("tripId", tripId);
+      url.searchParams.set("seats", selectedSeats.join(","));
+      window.location.href = url.toString();
+    };
+
+    init();
+  </script>
+</body>
+</html>

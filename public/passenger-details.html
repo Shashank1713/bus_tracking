@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Passenger Details</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body{margin:0;background:#eef2f8;font-family:Manrope,sans-serif;color:#1a2238;padding:16px}
+    .wrap{width:min(900px,100%);margin:0 auto;display:grid;gap:12px}
+    .card{background:#fff;border:1px solid #d7dfec;border-radius:16px;padding:14px;box-shadow:0 8px 22px rgba(25,39,74,.08)}
+    h1{margin:0 0 8px;color:#2f43a6}
+    .pax{border:1px solid #d7dfec;border-radius:12px;padding:10px;margin-bottom:8px;background:#fbfdff}
+    .grid{display:grid;grid-template-columns:1.5fr 100px 140px;gap:8px;margin-top:8px}
+    input,select{width:100%;min-height:40px;border:1px solid #cfd8ea;border-radius:10px;padding:0 10px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .btn{min-height:40px;border:none;border-radius:999px;padding:0 14px;font-weight:800;cursor:pointer}
+    .btn.apply{background:#e7edff;color:#2f43a6}
+    .btn.next{background:#f5cf0d;color:#1b2438}
+    .btn.back{background:#f3f6ff;color:#2f43a6}
+    .msg{margin-top:6px;color:#2f43a6;font-weight:700;min-height:22px}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Passenger Details</h1>
+      <p id="trip-meta"></p>
+      <div id="passengers"></div>
+    </section>
+
+    <section class="card">
+      <h1>Offers & Wallet</h1>
+      <div class="row">
+        <input id="coupon" placeholder="Coupon code (FRIENDLY10)" />
+        <button id="apply-coupon" class="btn apply" type="button">Apply</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label><input id="use-wallet" type="checkbox" /> Use Wallet Balance (<span id="wallet">Rs 0</span>)</label>
+      </div>
+      <p id="coupon-msg" class="msg"></p>
+    </section>
+
+    <section class="card">
+      <h1>Summary</h1>
+      <p id="summary"></p>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn back" type="button" onclick="window.history.back()">Back</button>
+        <button id="continue" class="btn next" type="button">Continue to Payment</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("appToken");
+    if (!token) window.location.href = "login.html";
+
+    const params = new URLSearchParams(window.location.search);
+    const tripId = params.get("tripId");
+    const seats = (params.get("seats") || "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (!tripId || !seats.length) window.location.href = "search-results.html";
+
+    let trip = null;
+    let walletBalance = 0;
+    let pricing = null;
+
+    function renderPassengerInputs() {
+      const host = document.getElementById("passengers");
+      host.innerHTML = "";
+      seats.forEach((seat, idx) => {
+        const box = document.createElement("div");
+        box.className = "pax";
+        box.innerHTML = `
+          <p><b>Passenger ${idx + 1}</b> - Seat ${seat}</p>
+          <div class="grid" data-seat="${seat}">
+            <input data-field="name" placeholder="Full Name" />
+            <input data-field="age" type="number" min="1" placeholder="Age" />
+            <select data-field="gender">
+              <option value="">Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        `;
+        host.appendChild(box);
+      });
+    }
+
+    function collectPassengers() {
+      const blocks = Array.from(document.querySelectorAll(".grid[data-seat]"));
+      const passengers = [];
+      for (const block of blocks) {
+        const name = block.querySelector('[data-field="name"]').value.trim();
+        const age = Number(block.querySelector('[data-field="age"]').value || 0);
+        const gender = block.querySelector('[data-field="gender"]').value;
+        if (!name || age <= 0 || !gender) return null;
+        passengers.push({ name, age, gender });
+      }
+      return passengers;
+    }
+
+    async function computePricing() {
+      const couponCode = document.getElementById("coupon").value.trim();
+      const useWallet = document.getElementById("use-wallet").checked;
+      const res = await fetch("/api/coupons/apply", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          couponCode,
+          baseFare: trip.fare,
+          seatCount: seats.length
+        })
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        document.getElementById("coupon-msg").textContent = payload.error || "Unable to apply coupon";
+        return;
+      }
+
+      let payable = payload.totalAmount;
+      let walletUsed = 0;
+      if (useWallet) {
+        walletUsed = Math.min(walletBalance, payable);
+        payable = Math.max(0, payable - walletUsed);
+      }
+
+      pricing = {
+        ...payload,
+        useWallet,
+        walletUsed,
+        payable,
+        couponCode: payload.couponCode || null
+      };
+
+      document.getElementById("coupon-msg").textContent = payload.valid
+        ? `Coupon applied. Discount Rs ${payload.discountAmount}`
+        : couponCode
+          ? "Coupon not applied."
+          : "";
+
+      document.getElementById("summary").innerHTML = `
+        Fare: Rs ${payload.fareAmount} | GST: Rs ${payload.gstAmount} | Fee: Rs ${payload.convenienceFee}<br/>
+        Discount: Rs ${payload.discountAmount} | Wallet Used: Rs ${walletUsed}<br/>
+        <b>Total Payable: Rs ${payable}</b>
+      `;
+    }
+
+    async function init() {
+      const [tripRes, walletRes] = await Promise.all([
+        fetch(`/api/trips/${encodeURIComponent(tripId)}`),
+        fetch("/api/wallet", { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      const tripPayload = await tripRes.json();
+      if (!tripRes.ok) {
+        document.getElementById("trip-meta").textContent = tripPayload.error || "Unable to load trip";
+        return;
+      }
+      trip = tripPayload.trip;
+      document.getElementById("trip-meta").textContent = `${trip.source} to ${trip.destination} | Seats: ${seats.join(", ")}`;
+
+      const walletPayload = await walletRes.json().catch(() => ({ balance: 0 }));
+      walletBalance = Number(walletPayload.balance || 0);
+      document.getElementById("wallet").textContent = `Rs ${walletBalance}`;
+
+      renderPassengerInputs();
+      computePricing();
+    }
+
+    document.getElementById("apply-coupon").onclick = computePricing;
+    document.getElementById("use-wallet").onchange = computePricing;
+
+    document.getElementById("continue").onclick = async () => {
+      const passengers = collectPassengers();
+      if (!passengers) {
+        alert("Please fill all passenger details.");
+        return;
+      }
+      if (!pricing) await computePricing();
+
+      sessionStorage.setItem("pendingBooking", JSON.stringify({
+        tripId,
+        seats,
+        passengers,
+        couponCode: pricing?.couponCode || null,
+        useWallet: pricing?.useWallet || false,
+        pricing
+      }));
+
+      window.location.href = "payment.html";
+    };
+
+    init();
+  </script>
+</body>
+</html>
