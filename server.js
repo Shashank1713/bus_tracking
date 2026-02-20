@@ -190,9 +190,18 @@ async function sendBookingNotifications({ user, booking, eventType }) {
 }
 
 const gmailEnabled = Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+const smtpPort = Number(process.env.SMTP_PORT || 465);
+const smtpSecure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : smtpPort === 465;
 const mailTransporter = gmailEnabled
   ? nodemailer.createTransport({
-      service: "gmail",
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      family: 4,
+      connectionTimeout: 20000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD
@@ -571,6 +580,11 @@ app.post("/api/auth/email/send-otp", async (req, res) => {
     }
     if (error.code === "EAUTH") {
       return res.status(500).json({ error: "Gmail authentication failed. Check GMAIL_USER/GMAIL_APP_PASSWORD." });
+    }
+    if (error.code === "ETIMEDOUT" || error.code === "ECONNECTION") {
+      return res.status(500).json({
+        error: "Email provider connection timeout. Try Mobile OTP or configure SMTP_HOST/SMTP_PORT."
+      });
     }
     console.error("email send-otp failed", error);
     return res.status(500).json({ error: "Failed to send email OTP. Please try again." });
