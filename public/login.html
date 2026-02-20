@@ -89,7 +89,8 @@
       font-weight: 700;
     }
 
-    input {
+    input,
+    select {
       width: 100%;
       border: 1px solid rgba(203, 213, 225, 0.2);
       background: rgba(15, 23, 42, 0.45);
@@ -101,7 +102,8 @@
       transition: border-color 150ms ease;
     }
 
-    input:focus {
+    input:focus,
+    select:focus {
       border-color: #38bdf8;
     }
 
@@ -162,13 +164,31 @@
 </head>
 <body>
   <main class="card">
-    <h1>Email OTP Login</h1>
-    <p>Enter your Gmail address to receive OTP.</p>
+    <h1>OTP Login</h1>
+    <p>Use Email OTP or Mobile OTP based on your server configuration.</p>
 
     <div class="stack">
       <div>
+        <label for="mode">Login Method</label>
+        <select id="mode">
+          <option value="email">Email OTP</option>
+          <option value="mobile">Mobile OTP</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div id="emailWrap">
         <label for="email">Email Address</label>
         <input id="email" type="email" placeholder="you@gmail.com" autocomplete="email" />
+      </div>
+
+      <div id="mobileWrap" hidden>
+        <label for="mobile">Mobile Number</label>
+        <div class="mobile-wrap">
+          <div class="code">+91</div>
+          <input id="mobile" type="tel" maxlength="10" placeholder="9876543210" inputmode="numeric" />
+        </div>
       </div>
 
       <div>
@@ -191,12 +211,20 @@
     const metaEl = document.getElementById("meta");
     const sendBtn = document.getElementById("sendBtn");
     const verifyBtn = document.getElementById("verifyBtn");
+    const modeSelect = document.getElementById("mode");
+    const emailWrap = document.getElementById("emailWrap");
+    const mobileWrap = document.getElementById("mobileWrap");
     const emailInput = document.getElementById("email");
+    const mobileInput = document.getElementById("mobile");
     const otpInput = document.getElementById("otp");
     const RESEND_SECONDS = 30;
     let resendTimer = null;
     let sentAt = null;
     let otpReady = false;
+    let capabilities = {
+      emailOtpEnabled: true,
+      smsOtpEnabled: false
+    };
 
     function setStatus(message, type) {
       statusEl.textContent = message || "";
@@ -212,6 +240,15 @@
       return email;
     }
 
+    function normalizeMobile() {
+      const mobile = mobileInput.value.trim().replace(/\D/g, "");
+      mobileInput.value = mobile;
+      if (!/^[6-9]\d{9}$/.test(mobile)) {
+        throw new Error("Enter a valid 10-digit Indian mobile number.");
+      }
+      return mobile;
+    }
+
     function mapApiError(errorMessage) {
       if (!errorMessage) return "Something went wrong. Please try again.";
       return errorMessage;
@@ -225,17 +262,52 @@
       return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
 
+    function activeMode() {
+      return modeSelect.value === "mobile" ? "mobile" : "email";
+    }
+
+    function resetOtpState() {
+      otpReady = false;
+      verifyBtn.disabled = true;
+      setStatus("", "");
+      setMeta("");
+      if (resendTimer) {
+        clearInterval(resendTimer);
+        resendTimer = null;
+      }
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Send OTP";
+    }
+
+    function refreshModeUi() {
+      const mode = activeMode();
+      emailWrap.hidden = mode !== "email";
+      mobileWrap.hidden = mode !== "mobile";
+      resetOtpState();
+    }
+
+    function applyCapabilityDefaults() {
+      if (capabilities.emailOtpEnabled) {
+        modeSelect.value = "email";
+        return;
+      }
+      if (capabilities.smsOtpEnabled) {
+        modeSelect.value = "mobile";
+        return;
+      }
+      sendBtn.disabled = true;
+      verifyBtn.disabled = true;
+      setStatus("No OTP provider is configured on server.", "error");
+      setMeta("Enable Gmail SMTP or FAST2SMS in Render environment variables.");
+    }
+
     async function loadAuthCapabilities() {
       try {
         const res = await fetch("/api/config/auth-capabilities");
         if (!res.ok) return;
-        const capabilities = await res.json();
-        if (!capabilities.emailOtpEnabled) {
-          setStatus("Email OTP is not configured on server.", "error");
-          setMeta("Set GMAIL_USER and GMAIL_APP_PASSWORD in Render Environment.");
-          sendBtn.disabled = true;
-          verifyBtn.disabled = true;
-        }
+        capabilities = await res.json();
+        applyCapabilityDefaults();
+        refreshModeUi();
       } catch (error) {
         // Ignore capability check failures and allow normal flow.
       }
@@ -273,12 +345,29 @@
       otpReady = false;
 
       try {
-        const email = normalizeEmail();
-        const res = await fetch("/api/auth/email/send-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
-        });
+        const mode = activeMode();
+        let res;
+        if (mode === "mobile") {
+          if (!capabilities.smsOtpEnabled) {
+            throw new Error("Mobile OTP is not configured on server.");
+          }
+          const mobile = normalizeMobile();
+          res = await fetch("/api/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mobile })
+          });
+        } else {
+          if (!capabilities.emailOtpEnabled) {
+            throw new Error("Email OTP is not configured on server.");
+          }
+          const email = normalizeEmail();
+          res = await fetch("/api/auth/email/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+          });
+        }
 
         const payload = await res.json();
         if (!res.ok) {
@@ -287,7 +376,7 @@
 
         sentAt = new Date();
         setMeta(`OTP sent at ${formatTime(sentAt)}. It expires in 5 minutes.`);
-        setStatus("OTP sent to your email.", "success");
+        setStatus(activeMode() === "mobile" ? "OTP sent to your mobile." : "OTP sent to your email.", "success");
         otpReady = true;
         verifyBtn.disabled = false;
         startResendCooldown();
@@ -312,17 +401,28 @@
         if (!otpReady) {
           throw new Error("Send OTP first.");
         }
-        const email = normalizeEmail();
+        const mode = activeMode();
         const otp = otpInput.value.trim();
         if (!/^\d{6}$/.test(otp)) {
           throw new Error("Enter a valid 6-digit OTP.");
         }
 
-        const res = await fetch("/api/auth/email/verify-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, otp })
-        });
+        let res;
+        if (mode === "mobile") {
+          const mobile = normalizeMobile();
+          res = await fetch("/api/verify-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mobile, otp })
+          });
+        } else {
+          const email = normalizeEmail();
+          res = await fetch("/api/auth/email/verify-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, otp })
+          });
+        }
 
         const payload = await res.json();
         if (!res.ok) {
@@ -341,7 +441,10 @@
 
     sendBtn.addEventListener("click", sendOtp);
     verifyBtn.addEventListener("click", verifyOtp);
+    modeSelect.addEventListener("change", refreshModeUi);
     verifyBtn.disabled = true;
+    applyCapabilityDefaults();
+    refreshModeUi();
     loadAuthCapabilities();
   </script>
 </body>
