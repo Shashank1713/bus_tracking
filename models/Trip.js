@@ -44,6 +44,37 @@ const tripSchema = new mongoose.Schema(
       type: [String],
       default: []
     },
+    journeyDetails: {
+      adminNotes: {
+        type: String,
+        default: ""
+      },
+      driverNotes: {
+        type: String,
+        default: ""
+      },
+      boardingPoint: {
+        type: String,
+        default: ""
+      },
+      droppingPoint: {
+        type: String,
+        default: ""
+      },
+      driverSource: {
+        type: String,
+        default: ""
+      },
+      driverDestination: {
+        type: String,
+        default: ""
+      },
+      driverTripDate: {
+        type: String,
+        default: ""
+      },
+      updatedByDriverAt: Date
+    },
     status: {
       type: String,
       enum: ["scheduled", "cancelled", "completed"],

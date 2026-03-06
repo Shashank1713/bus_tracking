@@ -89,17 +89,18 @@ function capitalize(value) {
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
-function toDateOnlyIso(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
-}
-
 function dayRange(dateInput) {
   const date = new Date(dateInput);
   if (Number.isNaN(date.getTime())) return null;
   const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
   const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1, 0, 0, 0, 0));
+  return { start, end };
+}
+
+function getDefaultDriverWindow() {
+  const now = new Date();
+  const start = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+  const end = new Date(now.getTime() + 36 * 60 * 60 * 1000);
   return { start, end };
 }
 
@@ -1353,6 +1354,10 @@ app.post("/api/admin/trips", authenticate, async (req, res) => {
     const fare = Number(req.body?.fare || 0);
     const totalSeats = Number(req.body?.totalSeats || 40);
     const amenities = Array.isArray(req.body?.amenities) ? req.body.amenities.map(String) : [];
+    const operatorName = String(req.body?.operatorName || "Friendly Travels").trim();
+    const adminNotes = String(req.body?.adminNotes || "").trim();
+    const boardingPoint = String(req.body?.boardingPoint || "").trim();
+    const droppingPoint = String(req.body?.droppingPoint || "").trim();
 
     if (!source || !destination || !busId) {
       return res.status(400).json({ error: "source, destination and busId are required" });
@@ -1369,121 +1374,156 @@ app.post("/api/admin/trips", authenticate, async (req, res) => {
     }
 
     const durationMinutes = Math.max(1, Math.round((arrivalTime.getTime() - departureTime.getTime()) / 60000));
-    const trip = await Trip.create({
-      routeId: route._id,
-      busId,
-      departureTime,
-      arrivalTime,
-      fare,
-      totalSeats,
-      durationMinutes,
-      amenities
-    });
+    const trip = await Trip.findOneAndUpdate(
+      { busId, departureTime },
+      {
+        routeId: route._id,
+        busId,
+        operatorName: operatorName || "Friendly Travels",
+        departureTime,
+        arrivalTime,
+        fare,
+        totalSeats,
+        durationMinutes,
+        amenities,
+        "journeyDetails.adminNotes": adminNotes,
+        "journeyDetails.boardingPoint": boardingPoint,
+        "journeyDetails.droppingPoint": droppingPoint
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true
+      }
+    );
 
-    return res.status(201).json({ message: "Trip created", trip });
+    return res.status(201).json({ message: "Trip saved", trip });
   } catch (error) {
-    if (error?.code === 11000) {
-      return res.status(409).json({ error: "Trip with same bus and departure already exists" });
-    }
-    return res.status(500).json({ error: "Unable to create trip" });
+    return res.status(500).json({ error: "Unable to save trip" });
   }
 });
 
-app.post("/api/admin/seed-demo", async (req, res) => {
+app.post("/api/admin/clear-journey-data", authenticate, async (req, res) => {
   try {
-    const demoRoutes = [
-      { source: "Bangalore", destination: "Hyderabad", distanceKm: 570 },
-      { source: "Bangalore", destination: "Pune", distanceKm: 842 },
-      { source: "Bangalore", destination: "Mumbai", distanceKm: 982 },
-      { source: "Bangalore", destination: "Mangalore", distanceKm: 352 },
-      { source: "Bangalore", destination: "Mysore", distanceKm: 146 }
-    ];
+    await Promise.all([
+      Booking.deleteMany({}),
+      Trip.deleteMany({}),
+      Route.deleteMany({})
+    ]);
+    clearLiveTrackingState();
+    return res.json({ ok: true, message: "Previous bus/journey data cleared" });
+  } catch (error) {
+    return res.status(500).json({ error: "Unable to clear previous data" });
+  }
+});
 
-    const now = new Date();
-    const day0 = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-    const day1 = new Date(day0.getTime() + 24 * 60 * 60 * 1000);
+app.post("/api/driver/trips/:tripId/journey-details", authenticate, async (req, res) => {
+  try {
+    const tripId = String(req.params.tripId || "").trim();
+    if (!tripId) return res.status(400).json({ error: "tripId is required" });
 
-    const createdRoutes = [];
-    for (const item of demoRoutes) {
-      const route = await Route.findOneAndUpdate(
-        { source: item.source, destination: item.destination },
-        { ...item, isActive: true },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
-      createdRoutes.push(route);
+    const driverNotes = String(req.body?.driverNotes || "").trim();
+    const driverSource = capitalize(req.body?.driverSource);
+    const driverDestination = capitalize(req.body?.driverDestination);
+    const driverTripDate = String(req.body?.driverTripDate || "").trim();
+
+    const trip = await Trip.findById(tripId);
+    if (!trip) return res.status(404).json({ error: "Trip not found" });
+
+    trip.journeyDetails = {
+      ...(trip.journeyDetails || {}),
+      driverNotes,
+      driverSource: driverSource || "",
+      driverDestination: driverDestination || "",
+      driverTripDate,
+      updatedByDriverAt: new Date()
+    };
+    await trip.save();
+
+    return res.json({ ok: true, message: "Driver journey details updated", tripId: trip._id });
+  } catch (error) {
+    return res.status(500).json({ error: "Unable to update driver journey details" });
+  }
+});
+
+app.post("/api/driver/journey-details", authenticate, async (req, res) => {
+  try {
+    const busId = String(req.body?.busId || "").trim();
+    const driverNotes = String(req.body?.driverNotes || "").trim();
+    const driverSource = capitalize(req.body?.driverSource);
+    const driverDestination = capitalize(req.body?.driverDestination);
+    const driverTripDate = String(req.body?.driverTripDate || "").trim();
+
+    if (!busId) return res.status(400).json({ error: "busId is required" });
+
+    let departureFilter = null;
+    if (driverTripDate) {
+      const range = dayRange(driverTripDate);
+      if (range) departureFilter = { $gte: range.start, $lt: range.end };
+    }
+    if (!departureFilter) {
+      const range = getDefaultDriverWindow();
+      departureFilter = { $gte: range.start, $lt: range.end };
     }
 
-    const tripTemplates = [
-      { hour: 19, minute: 15, duration: 555, fare: 1275, busId: "BUS-101", route: "Bangalore|Hyderabad" },
-      { hour: 20, minute: 15, duration: 555, fare: 1275, busId: "BUS-202", route: "Bangalore|Hyderabad" },
-      { hour: 21, minute: 0, duration: 555, fare: 1530, busId: "BUS-303", route: "Bangalore|Hyderabad" },
-      { hour: 21, minute: 30, duration: 720, fare: 1390, busId: "BUS-404", route: "Bangalore|Pune" },
-      { hour: 22, minute: 0, duration: 780, fare: 1490, busId: "BUS-505", route: "Bangalore|Mumbai" },
-      { hour: 18, minute: 45, duration: 420, fare: 980, busId: "BUS-606", route: "Bangalore|Mangalore" },
-      { hour: 7, minute: 30, duration: 210, fare: 550, busId: "BUS-707", route: "Bangalore|Mysore" }
-    ];
+    let trip = await Trip.findOne({
+      busId,
+      status: "scheduled",
+      departureTime: departureFilter
+    }).sort({ departureTime: 1 });
 
-    let upserts = 0;
-    for (const tripDay of [day0, day1]) {
-      for (const tpl of tripTemplates) {
-        const [source, destination] = tpl.route.split("|");
-        const route = createdRoutes.find((r) => r.source === source && r.destination === destination);
-        if (!route) continue;
-
-        const departureTime = new Date(tripDay);
-        departureTime.setUTCHours(tpl.hour, tpl.minute, 0, 0);
-        const arrivalTime = new Date(departureTime.getTime() + tpl.duration * 60000);
-
-        await Trip.findOneAndUpdate(
-          { busId: tpl.busId, departureTime },
-          {
-            routeId: route._id,
-            busId: tpl.busId,
-            operatorName: "Friendly Travels",
-            departureTime,
-            arrivalTime,
-            durationMinutes: tpl.duration,
-            fare: tpl.fare,
-            totalSeats: 40,
-            amenities: ["Live Tracking", "Water Bottle", "Charging Point"],
-            status: "scheduled"
-          },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-        upserts += 1;
-      }
+    if (!trip) {
+      trip = await Trip.findOne({
+        busId,
+        status: "scheduled",
+        departureTime: { $gte: new Date() }
+      }).sort({ departureTime: 1 });
     }
+
+    if (!trip) {
+      trip = await Trip.findOne({
+        busId,
+        status: "scheduled"
+      }).sort({ departureTime: -1 });
+    }
+
+    if (!trip) {
+      return res.status(404).json({ error: "No scheduled trip found for this bus. Create trip in admin panel first." });
+    }
+
+    trip.journeyDetails = {
+      ...(trip.journeyDetails || {}),
+      driverNotes,
+      driverSource: driverSource || "",
+      driverDestination: driverDestination || "",
+      driverTripDate: driverTripDate || "",
+      updatedByDriverAt: new Date()
+    };
+    await trip.save();
 
     return res.json({
       ok: true,
-      message: "Demo routes and trips are ready",
-      routes: createdRoutes.length,
-      tripsUpserted: upserts,
-      dates: [toDateOnlyIso(day0), toDateOnlyIso(day1)]
+      message: "Driver journey details updated",
+      trip: {
+        id: trip._id,
+        busId: trip.busId,
+        departureTime: trip.departureTime
+      }
     });
   } catch (error) {
-    console.error("seed demo failed", error);
-    return res.status(500).json({ error: "Failed to seed demo data" });
+    return res.status(500).json({ error: "Unable to update driver journey details" });
   }
 });
 
 // ---------------- LIVE BUS TRACKING ----------------
 const buses = {};
-const simulatorJobs = new Map();
 
-const cityCoordinates = {
-  bangalore: { lat: 12.9716, lon: 77.5946 },
-  bengaluru: { lat: 12.9716, lon: 77.5946 },
-  hyderabad: { lat: 17.385, lon: 78.4867 },
-  pune: { lat: 18.5204, lon: 73.8567 },
-  mumbai: { lat: 19.076, lon: 72.8777 },
-  mysore: { lat: 12.2958, lon: 76.6394 },
-  mangalore: { lat: 12.9141, lon: 74.856 },
-  goa: { lat: 15.2993, lon: 74.124 },
-  ahmedabad: { lat: 23.0225, lon: 72.5714 },
-  nagpur: { lat: 21.1458, lon: 79.0882 },
-  shirdi: { lat: 19.7645, lon: 74.4774 }
-};
+function clearLiveTrackingState() {
+  Object.keys(buses).forEach((busId) => {
+    delete buses[busId];
+  });
+  io.emit("fleetUpdate", buses);
+}
 
 function toFiniteNumber(value) {
   const number = Number(value);
@@ -1525,81 +1565,6 @@ function upsertBusLocation(busId, payload) {
   return true;
 }
 
-function stopSimulator(busId) {
-  const job = simulatorJobs.get(busId);
-  if (!job) return false;
-  clearInterval(job.intervalId);
-  simulatorJobs.delete(busId);
-  return true;
-}
-
-function getCityPoint(cityName, fallbackKey) {
-  const key = String(cityName || "").trim().toLowerCase();
-  return cityCoordinates[key] || cityCoordinates[fallbackKey];
-}
-
-function buildRoutePoints(startPoint, endPoint, count = 60) {
-  const points = [];
-  for (let i = 0; i <= count; i += 1) {
-    const t = i / count;
-    // Add slight curve so movement does not look perfectly linear.
-    const arc = Math.sin(t * Math.PI) * 0.18;
-    points.push({
-      lat: startPoint.lat + (endPoint.lat - startPoint.lat) * t + arc * 0.06,
-      lon: startPoint.lon + (endPoint.lon - startPoint.lon) * t + arc * -0.05
-    });
-  }
-  return points;
-}
-
-function startSimulator({ busId, source, destination, tripDate }) {
-  stopSimulator(busId);
-  const startPoint = getCityPoint(source, "bangalore");
-  const endPoint = getCityPoint(destination, "hyderabad");
-  const route = buildRoutePoints(startPoint, endPoint, 72);
-
-  let index = 0;
-  let direction = 1;
-
-  // Push an immediate update so the UI gets location without waiting for first interval tick.
-  upsertBusLocation(busId, {
-    lat: route[index].lat,
-    lon: route[index].lon,
-    speed: 58,
-    heading: 90,
-    source,
-    destination,
-    tripDate
-  });
-
-  const intervalId = setInterval(() => {
-    index += direction;
-    if (index >= route.length - 1) {
-      direction = -1;
-      index = route.length - 1;
-    } else if (index <= 0) {
-      direction = 1;
-      index = 0;
-    }
-
-    const current = route[index];
-    const next = route[Math.min(index + 1, route.length - 1)];
-    const heading = ((Math.atan2(next.lon - current.lon, next.lat - current.lat) * 180) / Math.PI + 360) % 360;
-
-    upsertBusLocation(busId, {
-      lat: current.lat,
-      lon: current.lon,
-      speed: 52 + Math.floor(Math.random() * 18),
-      heading,
-      source,
-      destination,
-      tripDate
-    });
-  }, 5000);
-
-  simulatorJobs.set(busId, { intervalId });
-}
-
 app.get("/api/tracking/buses", (req, res) => {
   return res.json({ buses });
 });
@@ -1633,34 +1598,6 @@ app.post("/api/tracking/update", (req, res) => {
   return res.json({ ok: true, bus: buses[safeBusId] });
 });
 
-app.post("/api/tracking/simulator/start", (req, res) => {
-  const safeBusId = String(req.body?.busId || "").trim();
-  const source = String(req.body?.source || "Bangalore").trim();
-  const destination = String(req.body?.destination || "Hyderabad").trim();
-  const tripDate = String(req.body?.tripDate || "").trim() || null;
-
-  if (!safeBusId) return res.status(400).json({ error: "busId is required" });
-
-  startSimulator({ busId: safeBusId, source, destination, tripDate });
-  return res.json({
-    ok: true,
-    message: "Simulator started",
-    bus: buses[safeBusId]
-  });
-});
-
-app.post("/api/tracking/simulator/stop", (req, res) => {
-  const safeBusId = String(req.body?.busId || "").trim();
-  if (!safeBusId) return res.status(400).json({ error: "busId is required" });
-
-  const stopped = stopSimulator(safeBusId);
-  return res.json({
-    ok: true,
-    stopped,
-    bus: buses[safeBusId] || null
-  });
-});
-
 io.on("connection", socket => {
   socket.on("joinBus", ({ busId }) => {
     const safeBusId = String(busId || "").trim();
@@ -1686,7 +1623,6 @@ io.on("connection", socket => {
   socket.on("stopSharing", ({ busId }) => {
     const safeBusId = String(busId || "").trim();
     if (!safeBusId) return;
-    stopSimulator(safeBusId);
     delete buses[safeBusId];
     io.emit("fleetUpdate", buses);
   });

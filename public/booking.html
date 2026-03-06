@@ -372,6 +372,18 @@
 
         trip = payload.trip;
         farePerSeatEl.textContent = `Rs ${trip.fare}`;
+        const journey = trip.journeyDetails || {};
+        const journeyLines = [];
+        if (journey.boardingPoint) journeyLines.push(`<p>Boarding Point: ${journey.boardingPoint}</p>`);
+        if (journey.droppingPoint) journeyLines.push(`<p>Dropping Point: ${journey.droppingPoint}</p>`);
+        if (journey.adminNotes) journeyLines.push(`<p>Admin Note: ${journey.adminNotes}</p>`);
+        if (journey.driverNotes) journeyLines.push(`<p>Driver Note: ${journey.driverNotes}</p>`);
+        if (journey.driverSource || journey.driverDestination) {
+          const ds = journey.driverSource || trip.source;
+          const dd = journey.driverDestination || trip.destination;
+          journeyLines.push(`<p>Driver Route: ${ds} to ${dd}</p>`);
+        }
+        if (journey.driverTripDate) journeyLines.push(`<p>Driver Date: ${journey.driverTripDate}</p>`);
 
         const dep = new Date(trip.departureTime).toLocaleString();
         const arr = new Date(trip.arrivalTime).toLocaleString();
@@ -381,6 +393,7 @@
           <p>Departure: ${dep}</p>
           <p>Arrival: ${arr}</p>
           <p>Available Seats: ${trip.availableSeats}</p>
+          ${journeyLines.join("")}
         `;
 
         renderSeats();

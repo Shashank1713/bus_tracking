@@ -19,6 +19,12 @@
     .btn { min-height:42px; border:none; border-radius:999px; padding:0 16px; font-weight:800; cursor:pointer; }
     .btn.back { background:#e7edff; color:#2f43a6; }
     .btn.next { background:#f5cf0d; color:#1b2438; }
+    .btn.track { background:#dae5ff; color:#1b2e85; }
+    .status { border:1px solid #d7dfec; border-radius:12px; padding:10px; color:#4f5d78; font-weight:700; background:#f9fbff; margin-bottom:10px; }
+    .status.live { background:#ecf9f0; border-color:#cce8d6; color:#1b6b3f; }
+    @media (max-width: 680px) {
+      .meta { grid-template-columns:1fr; }
+    }
   </style>
 </head>
 <body>
@@ -30,47 +36,147 @@
     </section>
 
     <section class="card">
+      <h1 style="font-size:1.25rem;">Driver Live Details</h1>
+      <div id="driver-status" class="status">Checking if driver has shared live details...</div>
+      <div id="driver-details" class="meta">
+        <div><b>Last Update</b><br/>-</div>
+        <div><b>Speed</b><br/>-</div>
+        <div><b>Latitude</b><br/>-</div>
+        <div><b>Longitude</b><br/>-</div>
+        <div><b>Route (Driver)</b><br/>-</div>
+        <div><b>Trip Date (Driver)</b><br/>-</div>
+      </div>
+    </section>
+
+    <section class="card">
       <div class="row">
         <button class="btn back" type="button" onclick="window.history.back()">Back</button>
+        <button id="track" class="btn track" type="button">Track Live</button>
         <button id="next" class="btn next" type="button">Select Seats</button>
       </div>
     </section>
   </main>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const tripId = new URLSearchParams(window.location.search).get("tripId");
     if (!tripId) window.location.href = "search-results.html";
+    const detailsEl = document.getElementById("details");
+    const amenitiesEl = document.getElementById("amenities");
+    const nextEl = document.getElementById("next");
+    const trackEl = document.getElementById("track");
+    const driverStatusEl = document.getElementById("driver-status");
+    const driverDetailsEl = document.getElementById("driver-details");
+    let trip = null;
+    let socket = null;
+
+    function formatDateTime(input) {
+      if (!input) return "-";
+      const date = new Date(input);
+      if (Number.isNaN(date.getTime())) return "-";
+      return date.toLocaleString();
+    }
+
+    function setDriverDetails(bus) {
+      if (!bus) {
+        driverStatusEl.classList.remove("live");
+        driverStatusEl.textContent = "No live details available. Ask driver to start sharing.";
+        driverDetailsEl.innerHTML = `
+          <div><b>Last Update</b><br/>-</div>
+          <div><b>Speed</b><br/>-</div>
+          <div><b>Latitude</b><br/>-</div>
+          <div><b>Longitude</b><br/>-</div>
+          <div><b>Route (Driver)</b><br/>-</div>
+          <div><b>Trip Date (Driver)</b><br/>-</div>
+        `;
+        return;
+      }
+
+      driverStatusEl.classList.add("live");
+      driverStatusEl.textContent = "Live details received from driver GPS.";
+      driverDetailsEl.innerHTML = `
+        <div><b>Last Update</b><br/>${formatDateTime(bus.updatedAt)}</div>
+        <div><b>Speed</b><br/>${Math.round(bus.speed || 0)} km/h</div>
+        <div><b>Latitude</b><br/>${typeof bus.lat === "number" ? bus.lat.toFixed(5) : "-"}</div>
+        <div><b>Longitude</b><br/>${typeof bus.lon === "number" ? bus.lon.toFixed(5) : "-"}</div>
+        <div><b>Route (Driver)</b><br/>${bus.source || trip.source} to ${bus.destination || trip.destination}</div>
+        <div><b>Trip Date (Driver)</b><br/>${bus.tripDate || String(trip.departureTime || "").slice(0, 10) || "-"}</div>
+      `;
+    }
+
+    async function loadDriverDetails() {
+      if (!trip?.busId) return;
+      try {
+        const response = await fetch(`/api/tracking/buses/${encodeURIComponent(trip.busId)}`);
+        if (!response.ok) {
+          setDriverDetails(null);
+          return;
+        }
+        const payload = await response.json();
+        setDriverDetails(payload.bus || null);
+      } catch (error) {
+        setDriverDetails(null);
+      }
+    }
 
     async function loadTrip() {
       const res = await fetch(`/api/trips/${encodeURIComponent(tripId)}`);
       const payload = await res.json();
       if (!res.ok) {
-        document.getElementById("details").textContent = payload.error || "Unable to load trip";
+        detailsEl.textContent = payload.error || "Unable to load trip";
+        driverStatusEl.textContent = "Trip details unavailable, so live details cannot be loaded.";
+        trackEl.disabled = true;
+        nextEl.disabled = true;
         return;
       }
 
-      const trip = payload.trip;
+      trip = payload.trip;
       const dep = new Date(trip.departureTime).toLocaleString();
       const arr = new Date(trip.arrivalTime).toLocaleString();
 
-      document.getElementById("details").innerHTML = `
+      detailsEl.innerHTML = `
         <div><b>Bus</b><br/>${trip.operatorName} - ${trip.busId}</div>
         <div><b>Route</b><br/>${trip.source} to ${trip.destination}</div>
         <div><b>Departure</b><br/>${dep}</div>
         <div><b>Arrival</b><br/>${arr}</div>
         <div><b>Fare</b><br/>Rs ${trip.fare}</div>
         <div><b>Available Seats</b><br/>${trip.availableSeats}</div>
+        <div><b>Boarding Point</b><br/>${trip.journeyDetails?.boardingPoint || "-"}</div>
+        <div><b>Dropping Point</b><br/>${trip.journeyDetails?.droppingPoint || "-"}</div>
+        <div><b>Admin Journey Note</b><br/>${trip.journeyDetails?.adminNotes || "-"}</div>
+        <div><b>Driver Journey Note</b><br/>${trip.journeyDetails?.driverNotes || "-"}</div>
       `;
 
       const amenities = trip.amenities || [];
-      document.getElementById("amenities").innerHTML = amenities.map((item) => `<span class="chip">${item}</span>`).join("") || '<span class="chip">Standard Service</span>';
+      amenitiesEl.innerHTML = amenities.map((item) => `<span class="chip">${item}</span>`).join("") || '<span class="chip">Standard Service</span>';
 
-      document.getElementById("next").onclick = () => {
+      nextEl.onclick = () => {
         window.location.href = `seat-selection.html?tripId=${encodeURIComponent(tripId)}`;
       };
+
+      trackEl.onclick = () => {
+        const liveUrl = new URL("live-tracking.html", window.location.origin);
+        liveUrl.searchParams.set("busId", trip.busId);
+        liveUrl.searchParams.set("source", trip.source);
+        liveUrl.searchParams.set("destination", trip.destination);
+        liveUrl.searchParams.set("date", String(trip.departureTime || "").slice(0, 10));
+        window.location.href = liveUrl.toString();
+      };
+
+      await loadDriverDetails();
+      socket = io();
+      socket.emit("joinBus", { busId: trip.busId });
+      socket.on("busLocation", (busPayload) => {
+        if (!busPayload || busPayload.busId !== trip.busId) return;
+        setDriverDetails(busPayload);
+      });
     }
 
     loadTrip();
+
+    window.addEventListener("beforeunload", () => {
+      if (socket && trip?.busId) socket.emit("leaveBus", { busId: trip.busId });
+    });
   </script>
 </body>
 </html>

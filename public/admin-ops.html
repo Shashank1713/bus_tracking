@@ -58,9 +58,9 @@
       cursor: pointer;
     }
 
-    .btn.seed { background: var(--yellow); color: #1b2438; }
     .btn.primary { background: var(--blue); color: #fff; }
     .btn.muted { background: #e7edff; color: var(--blue); }
+    .btn.quick { background: #ffe9a8; color: #5a4300; }
 
     .msg {
       min-height: 38px;
@@ -101,7 +101,7 @@
     <div class="row">
       <button class="btn muted" type="button" onclick="window.location.href='index.html'">Home</button>
       <button class="btn muted" type="button" onclick="window.location.href='my-bookings.html'">My Bookings</button>
-      <button id="seed-btn" class="btn seed" type="button">Seed Demo Data</button>
+      <button id="clear-btn" class="btn muted" type="button">Clear Previous Data</button>
       <button id="reload-btn" class="btn primary" type="button">Reload Lists</button>
     </div>
 
@@ -119,14 +119,21 @@
 
     <section class="card">
       <p class="title">Create Trip</p>
+      <div class="row" style="margin-bottom:10px;">
+        <button id="quick-preset-btn" class="btn quick" type="button">Friendly Quick Setup</button>
+      </div>
       <div class="grid">
         <input id="trip-source" placeholder="Source" />
         <input id="trip-destination" placeholder="Destination" />
         <input id="trip-bus-id" placeholder="Bus ID" />
+        <input id="trip-operator" placeholder="Operator Name (Friendly Travels)" />
         <input id="trip-fare" type="number" placeholder="Fare" />
         <input id="trip-seats" type="number" placeholder="Total Seats (40)" />
         <input id="trip-departure" type="datetime-local" />
         <input id="trip-arrival" type="datetime-local" />
+        <input id="trip-boarding" placeholder="Boarding Point" />
+        <input id="trip-dropping" placeholder="Dropping Point" />
+        <input id="trip-admin-note" placeholder="Admin Journey Note" />
         <button id="save-trip" class="btn primary" type="button">Save Trip</button>
       </div>
     </section>
@@ -150,13 +157,47 @@
       messageEl.textContent = text;
     }
 
+    function redirectToLogin() {
+      localStorage.removeItem("appToken");
+      localStorage.removeItem("mobile");
+      localStorage.removeItem("identity");
+      window.location.href = "login.html";
+    }
+
     async function api(path, options = {}) {
       const headers = { ...(options.headers || {}) };
       if (appToken) headers.Authorization = `Bearer ${appToken}`;
       const response = await fetch(path, { ...options, headers });
       const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        redirectToLogin();
+        throw new Error("Authentication required");
+      }
       if (!response.ok) throw new Error(payload.error || "Request failed");
       return payload;
+    }
+
+    async function ensureAuthenticated() {
+      if (!appToken) {
+        redirectToLogin();
+        return false;
+      }
+
+      try {
+        const response = await fetch("/api/session-check", {
+          headers: {
+            Authorization: `Bearer ${appToken}`
+          }
+        });
+        if (!response.ok) {
+          redirectToLogin();
+          return false;
+        }
+        return true;
+      } catch (error) {
+        setMessage("Unable to validate session. Try logging in again.");
+        return false;
+      }
     }
 
     async function loadRoutes() {
@@ -190,7 +231,11 @@
             const dep = new Date(trip.departureTime).toLocaleString();
             const arr = new Date(trip.arrivalTime).toLocaleString();
             const route = trip.routeId ? `${trip.routeId.source} to ${trip.routeId.destination}` : "-";
-            return `<div class="item"><b>${trip.busId}</b> | ${route}<br/>${dep} -> ${arr}<br/>Fare Rs ${trip.fare} | Seats ${trip.totalSeats}</div>`;
+            const boarding = trip.journeyDetails?.boardingPoint || "-";
+            const dropping = trip.journeyDetails?.droppingPoint || "-";
+            const adminNote = trip.journeyDetails?.adminNotes || "-";
+            const driverNote = trip.journeyDetails?.driverNotes || "-";
+            return `<div class="item"><b>${trip.busId}</b> | ${route}<br/>${dep} -> ${arr}<br/>Fare Rs ${trip.fare} | Seats ${trip.totalSeats}<br/>Boarding: ${boarding} | Dropping: ${dropping}<br/>Admin Note: ${adminNote}<br/>Driver Note: ${driverNote}<br/>Trip ID: ${trip._id}</div>`;
           })
           .join("");
       } catch (error) {
@@ -220,28 +265,71 @@
       const source = document.getElementById("trip-source").value.trim();
       const destination = document.getElementById("trip-destination").value.trim();
       const busId = document.getElementById("trip-bus-id").value.trim();
+      const operatorName = document.getElementById("trip-operator").value.trim();
       const fare = Number(document.getElementById("trip-fare").value || 0);
       const totalSeats = Number(document.getElementById("trip-seats").value || 40);
       const departureTime = document.getElementById("trip-departure").value;
       const arrivalTime = document.getElementById("trip-arrival").value;
+      const boardingPoint = document.getElementById("trip-boarding").value.trim();
+      const droppingPoint = document.getElementById("trip-dropping").value.trim();
+      const adminNotes = document.getElementById("trip-admin-note").value.trim();
 
       try {
         await api("/api/admin/trips", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source, destination, busId, fare, totalSeats, departureTime, arrivalTime })
+          body: JSON.stringify({
+            source,
+            destination,
+            busId,
+            operatorName,
+            fare,
+            totalSeats,
+            departureTime,
+            arrivalTime,
+            boardingPoint,
+            droppingPoint,
+            adminNotes
+          })
         });
-        setMessage("Trip created.");
+        setMessage("Trip saved.");
         loadTrips();
       } catch (error) {
         setMessage(error.message);
       }
     }
 
-    document.getElementById("seed-btn").addEventListener("click", async () => {
+    function applyFriendlyPreset() {
+      const sourceEl = document.getElementById("trip-source");
+      const destinationEl = document.getElementById("trip-destination");
+      const busIdEl = document.getElementById("trip-bus-id");
+      const operatorEl = document.getElementById("trip-operator");
+      const fareEl = document.getElementById("trip-fare");
+      const seatsEl = document.getElementById("trip-seats");
+      const boardingEl = document.getElementById("trip-boarding");
+      const droppingEl = document.getElementById("trip-dropping");
+      const adminNoteEl = document.getElementById("trip-admin-note");
+
+      operatorEl.value = "Friendly Travels";
+      if (!busIdEl.value.trim()) busIdEl.value = "BUS-101";
+      if (!fareEl.value.trim()) fareEl.value = "1275";
+      if (!seatsEl.value.trim()) seatsEl.value = "40";
+      if (!sourceEl.value.trim()) sourceEl.value = "Bangalore";
+      if (!destinationEl.value.trim()) destinationEl.value = "Hyderabad";
+
+      const source = sourceEl.value.trim();
+      const destination = destinationEl.value.trim();
+      if (!boardingEl.value.trim()) boardingEl.value = source ? `${source} Main Boarding` : "";
+      if (!droppingEl.value.trim()) droppingEl.value = destination ? `${destination} Main Drop` : "";
+      if (!adminNoteEl.value.trim()) adminNoteEl.value = "Friendly journey details added by admin.";
+
+      setMessage("Friendly preset applied. Review fields and click Save Trip.");
+    }
+
+    document.getElementById("clear-btn").addEventListener("click", async () => {
       try {
-        const payload = await api("/api/admin/seed-demo", { method: "POST" });
-        setMessage(payload.message || "Demo data ready.");
+        const payload = await api("/api/admin/clear-journey-data", { method: "POST" });
+        setMessage(payload.message || "Previous data cleared.");
         loadRoutes();
         loadTrips();
       } catch (error) {
@@ -256,9 +344,14 @@
 
     document.getElementById("save-route").addEventListener("click", saveRoute);
     document.getElementById("save-trip").addEventListener("click", saveTrip);
+    document.getElementById("quick-preset-btn").addEventListener("click", applyFriendlyPreset);
 
-    loadRoutes();
-    loadTrips();
+    (async () => {
+      const allowed = await ensureAuthenticated();
+      if (!allowed) return;
+      loadRoutes();
+      loadTrips();
+    })();
   </script>
 </body>
 </html>

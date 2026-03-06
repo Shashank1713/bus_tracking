@@ -33,11 +33,6 @@ After deploy succeeds:
 - API health: `/api/openapi.json`
 - Swagger UI: `/api-docs`
 
-## 6. Seed Demo Data (Optional)
-Call:
-
-```bash
-curl -X POST https://<your-render-domain>/api/admin/seed-demo
-```
-
-This creates demo routes and trips for testing search and booking flows.
+## 6. Add Live Data
+After deploy, sign in to `/admin-ops.html` and create real routes/trips.
+Drivers should share location from `/driver.html`, which updates live tracking via `/api/tracking/update`.

@@ -44,7 +44,7 @@
     }
 
     .card {
-      width: 360px;
+      width: min(460px, calc(100% - 24px));
       background: rgba(255,255,255,0.08);
       backdrop-filter: blur(14px);
       padding: 28px;
@@ -57,13 +57,19 @@
       margin-bottom: 18px;
     }
 
-    input {
+    input,
+    textarea {
       width: 100%;
       padding: 12px;
       border-radius: 10px;
       border: none;
       margin-bottom: 16px;
       font-size: 0.9rem;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 86px;
     }
 
     button {
@@ -109,9 +115,19 @@
   <input id="source" placeholder="Source (e.g. Bangalore)">
   <input id="destination" placeholder="Destination (e.g. Hyderabad)">
   <input id="tripDate" type="date">
+  <input id="tripId" placeholder="Trip ID for journey details (optional)">
+  <textarea id="driverNotes" placeholder="Driver journey note (traffic, delay, boarding info)"></textarea>
 
   <button id="startBtn" class="start" onclick="startSharing()">
     Start Sharing
+  </button>
+
+  <button id="openLiveBtn" type="button" onclick="openLiveTracking()">
+    Open Live Tracking View
+  </button>
+
+  <button id="saveJourneyBtn" onclick="saveJourneyDetails()">
+    Save Journey Details
   </button>
 
   <button id="stopBtn" class="stop" onclick="stopSharing()" disabled>
@@ -161,6 +177,75 @@
       });
     } catch (error) {
       // Socket updates still continue even when API call fails.
+    }
+  }
+
+  function openLiveTracking() {
+    const busId = (currentBusId || document.getElementById("busId").value || "").trim();
+    const source = (currentSource || document.getElementById("source").value || "Bangalore").trim();
+    const destination = (currentDestination || document.getElementById("destination").value || "Hyderabad").trim();
+    const tripDate = (currentTripDate || document.getElementById("tripDate").value || "").trim();
+
+    if (!busId) {
+      alert("Please enter Bus ID first");
+      return;
+    }
+
+    const liveUrl = new URL("live-tracking.html", window.location.origin);
+    liveUrl.searchParams.set("busId", busId);
+    liveUrl.searchParams.set("source", source);
+    liveUrl.searchParams.set("destination", destination);
+    if (tripDate) liveUrl.searchParams.set("date", tripDate);
+    window.open(liveUrl.toString(), "_blank");
+  }
+
+  async function saveJourneyDetails() {
+    const busId = document.getElementById("busId").value.trim();
+    const tripId = document.getElementById("tripId").value.trim();
+    const driverNotes = document.getElementById("driverNotes").value.trim();
+    const driverSource = document.getElementById("source").value.trim();
+    const driverDestination = document.getElementById("destination").value.trim();
+    const driverTripDate = document.getElementById("tripDate").value.trim();
+
+    if (!busId) {
+      alert("Please enter Bus ID");
+      return;
+    }
+
+    try {
+      const endpoint = tripId
+        ? `/api/driver/trips/${encodeURIComponent(tripId)}/journey-details`
+        : "/api/driver/journey-details";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${appToken}`
+        },
+        body: JSON.stringify({
+          busId,
+          driverNotes,
+          driverSource,
+          driverDestination,
+          driverTripDate
+        })
+      });
+      const rawText = await response.text();
+      let payload = {};
+      try {
+        payload = rawText ? JSON.parse(rawText) : {};
+      } catch (e) {
+        payload = {};
+      }
+      if (!response.ok) {
+        const fallback = rawText && !rawText.trim().startsWith("<") ? rawText.trim() : `Request failed (${response.status})`;
+        alert(payload.error || fallback || "Unable to save journey details");
+        return;
+      }
+      const tripLabel = payload?.trip?.id ? `Trip ${payload.trip.id}` : "matched trip";
+      document.getElementById("status").innerText = `✅ Journey details saved for ${tripLabel}`;
+    } catch (error) {
+      alert("Failed to save journey details");
     }
   }
 

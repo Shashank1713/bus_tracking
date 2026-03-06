@@ -247,6 +247,7 @@
 
     let busMarker = null;
     let lastUpdateTimestamp = 0;
+    let fallbackRefreshId = null;
 
     function formatTime(ts) {
       if (!ts) return "-";
@@ -315,8 +316,11 @@
       }
     }, 5000);
 
+    fallbackRefreshId = setInterval(fetchInitialLocation, 10000);
+
     window.addEventListener("beforeunload", () => {
       socket.emit("leaveBus", { busId });
+      if (fallbackRefreshId) clearInterval(fallbackRefreshId);
     });
 
     fetchInitialLocation();
